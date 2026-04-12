@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function ToastContainer({ toasts, removeToast }) {
@@ -45,8 +45,6 @@ function Toast({ toast, onClose }) {
 }
 
 // Hook for using toasts
-import { useState, useCallback } from 'react';
-
 export function useToast() {
   const [toasts, setToasts] = useState([]);
 

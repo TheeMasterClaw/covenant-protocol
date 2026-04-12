@@ -4,6 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ethers } from 'ethers';
 import './App.css';
 
+// New Components
+import { ErrorBoundary, WalletError, EmptyState } from './components/ErrorBoundary';
+import { LoadingCard, PageLoader } from './components/LoadingSkeleton';
+import { ToastContainer, useToast } from './components/Toast';
+import { useTransaction, TransactionModal } from './components/TransactionProgress';
+import { PageTransition, FadeIn } from './components/PageTransition';
+import { ThemeToggle } from './components/ThemeToggle';
+import { useTheme } from './hooks/useTheme';
+
 // Contract ABIs (simplified)
 import CovenantFactoryABI from './abis/CovenantFactory.json';
 import TaskMarketABI from './abis/TaskMarket.json';
@@ -16,19 +25,27 @@ const CONTRACTS = {
   reputationStake: process.env.REACT_APP_REPUTATION_STAKE_ADDRESS
 };
 
-function App() {
+function AppContent() {
   const [account, setAccount] = useState(null);
   const [provider, setProvider] = useState(null);
   const [contracts, setContracts] = useState({});
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalStaked: '45.2K',
     reputation: 847,
     activeTasks: 12,
     earnings: '2.4'
   });
+  
+  // New hooks
+  const { theme, toggleTheme } = useTheme();
+  const { toasts, removeToast, success, error, info } = useToast();
+  const { TransactionModalComponent, startTransaction, updateStatus } = useTransaction();
 
   useEffect(() => {
     checkWalletConnection();
+    // Simulate loading for demo
+    setTimeout(() => setLoading(false), 1000);
   }, []);
 
   const checkWalletConnection = async () => {
@@ -40,9 +57,11 @@ function App() {
           setAccount(accounts[0]);
           setProvider(provider);
           initializeContracts(provider);
+          info('Wallet Connected', 'Successfully connected to your wallet');
         }
-      } catch (error) {
-        console.error('Wallet connection error:', error);
+      } catch (err) {
+        console.error('Wallet connection error:', err);
+        error('Connection Error', err.message);
       }
     }
   };
@@ -50,18 +69,26 @@ function App() {
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
+        startTransaction();
+        updateStatus('pending');
+        
         const provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send('eth_requestAccounts', []);
         const signer = await provider.getSigner();
         const address = await signer.getAddress();
+        
         setAccount(address);
         setProvider(provider);
         initializeContracts(provider);
-      } catch (error) {
-        console.error('Wallet connection failed:', error);
+        
+        updateStatus('confirmed');
+        success('Wallet Connected', `Connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
+      } catch (err) {
+        updateStatus('failed');
+        error('Connection Failed', err.message);
       }
     } else {
-      alert('Please install MetaMask or another Web3 wallet');
+      error('No Wallet', 'Please install MetaMask or another Web3 wallet');
     }
   };
 
@@ -79,30 +106,42 @@ function App() {
     setContracts(contracts);
   };
 
+  if (loading) {
+    return <PageLoader />;
+  }
+
   return (
-    <Router>
-      <div className="app">
+    <PageTransition>
+      <div className="app" data-theme={theme}>
         <div className="bg-grid"></div>
         <div className="bg-glow glow-1"></div>
         <div className="bg-glow glow-2"></div>
         
-        <Header account={account} connectWallet={connectWallet} />
+        <Header 
+          account={account} 
+          connectWallet={connectWallet}
+          themeToggle={<ThemeToggle theme={theme} toggleTheme={toggleTheme} />}
+        />
         
         <main className="main">
           <Routes>
-            <Route path="/" element={<Dashboard stats={stats} account={account} />} />
+            <Route path="/" element={<Dashboard stats={stats} account={account} loading={loading} />} />
             <Route path="/covenants" element={<Covenants contracts={contracts} account={account} />} />
             <Route path="/tasks" element={<TaskMarket contracts={contracts} account={account} />} />
             <Route path="/reputation" element={<Reputation contracts={contracts} account={account} />} />
             <Route path="/disputes" element={<Disputes contracts={contracts} account={account} />} />
           </Routes>
         </main>
+        
+        {/* New UI Components */}
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+        <TransactionModalComponent />
       </div>
-    </Router>
+    </PageTransition>
   );
 }
 
-function Header({ account, connectWallet }) {
+function Header({ account, connectWallet, themeToggle }) {
   const location = useLocation();
   
   return (
@@ -120,9 +159,12 @@ function Header({ account, connectWallet }) {
         <Link to="/reputation" className={`nav-item ${location.pathname === '/reputation' ? 'active' : ''}`}>Reputation</Link>
       </nav>
       
-      <button className="wallet-btn" onClick={connectWallet}>
-        {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : 'Connect Wallet'}
-      </button>
+      <div className="header-actions">
+        {themeToggle}
+        <button className="wallet-btn" onClick={connectWallet}>
+          {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : 'Connect Wallet'}
+        </button>
+      </div>
     </header>
   );
 }
@@ -312,6 +354,17 @@ function Disputes({ contracts, account }) {
       <p className="page-subtitle">Decentralized arbitration for covenant conflicts</p>
       {/* Dispute court UI */}
     </div>
+  );
+}
+
+// Wrap AppContent with ErrorBoundary and Router
+function App() {
+  return (
+    <ErrorBoundary>
+      <Router>
+        <AppContent />
+      </Router>
+    </ErrorBoundary>
   );
 }
 
