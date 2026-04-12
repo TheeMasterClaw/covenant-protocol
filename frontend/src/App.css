@@ -601,6 +601,96 @@ textarea.form-input {
   background: var(--bg-secondary);
 }
 
+/* Theme Toggle */
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.toggle-track {
+  width: 52px;
+  height: 28px;
+  border-radius: 14px;
+  padding: 2px;
+  position: relative;
+}
+
+.toggle-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f5;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a5a;
+  --text-muted: #7a7a8a;
+  --border-color: #e0e0e5;
+}
+
+[data-theme="light"] .card,
+[data-theme="light"] .covenant-item,
+[data-theme="light"] .task-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) {
+  .btn:hover {
+    transform: none;
+  }
+  
+  .card:hover {
+    transform: none;
+  }
+  
+  .nav-item:hover {
+    background: none;
+  }
+}
+
+/* Mobile Navigation */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 12px 24px;
+  z-index: 100;
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.mobile-nav-item.active {
+  color: var(--accent-primary);
+}
+
+.mobile-nav-icon {
+  font-size: 20px;
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
   .dashboard {
@@ -619,6 +709,11 @@ textarea.form-input {
   
   .nav {
     display: none;
+  }
+  
+  .mobile-nav {
+    display: flex;
+    justify-content: space-around;
   }
   
   .hero h1 {
@@ -646,6 +741,22 @@ textarea.form-input {
   
   .container {
     padding: 24px;
+    padding-bottom: 80px; /* Space for mobile nav */
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .toast-container {
+    left: 16px;
+    right: 16px;
+    bottom: 80px;
+  }
+  
+  .toast {
+    min-width: auto;
   }
 }
 

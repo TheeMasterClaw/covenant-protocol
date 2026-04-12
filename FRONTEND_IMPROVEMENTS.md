@@ -23,7 +23,7 @@
 - ✅ Dark cyberpunk theme
 - ✅ Responsive design
 - ✅ Basic routing
-- ✅ Vercel deployment: https://covenant-protocol-v1.vercel.app
+- ✅ Vercel deployment: https://frontend-yeeeee.vercel.app (updated with new components)
 
 ### Completed Improvements (Manual Implementation)
 - [x] Loop #1: Loading skeletons - Added LoadingCard, LoadingCovenantItem, PageLoader, LoadingAgents
