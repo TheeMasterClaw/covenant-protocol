@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.css": "./static/css/main.d0d73579.css",
-    "main.js": "./static/js/main.8cb69840.js",
-    "index.html": "./index.html",
-    "main.d0d73579.css.map": "./static/css/main.d0d73579.css.map",
-    "main.8cb69840.js.map": "./static/js/main.8cb69840.js.map"
+    "main.css": "/covenant-protocol/static/css/main.d0d73579.css",
+    "main.js": "/covenant-protocol/static/js/main.8cb69840.js",
+    "index.html": "/covenant-protocol/index.html",
+    "main.d0d73579.css.map": "/covenant-protocol/static/css/main.d0d73579.css.map",
+    "main.8cb69840.js.map": "/covenant-protocol/static/js/main.8cb69840.js.map"
   },
   "entrypoints": [
     "static/css/main.d0d73579.css",

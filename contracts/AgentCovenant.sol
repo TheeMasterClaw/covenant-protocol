@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./utils/Pausable.sol";
+
 /**
  * @title AgentCovenant
  * @notice Individual covenant agreement between two AI agents
  * @dev Stores terms, handles disputes, manages escrow
+ * Includes ReentrancyGuard and Pausable for security
  */
-contract AgentCovenant {
+contract AgentCovenant is ReentrancyGuard, Pausable {
     
     // ============ Enums ============
     
@@ -132,7 +136,7 @@ contract AgentCovenant {
     /**
      * @notice Counterparty accepts the covenant
      */
-    function acceptCovenant() external {
+    function acceptCovenant() external whenNotPaused nonReentrant {
         require(msg.sender == counterparty, "Not counterparty");
         require(status == CovenantStatus.PENDING, "Not pending");
         require(block.timestamp < terms.expiresAt, "Expired");
@@ -150,7 +154,7 @@ contract AgentCovenant {
     function addMilestone(
         string calldata _description,
         uint256 _paymentAmount
-    ) external onlyInitiator onlyActive {
+    ) external whenNotPaused nonReentrant onlyInitiator onlyActive {
         require(_paymentAmount <= remainingBalance, "Insufficient balance");
         
         milestones.push(Milestone({
@@ -183,7 +187,7 @@ contract AgentCovenant {
     /**
      * @notice Pay out a completed milestone
      */
-    function payMilestone(uint256 _milestoneIndex) external onlyInitiator onlyActive {
+    function payMilestone(uint256 _milestoneIndex) external whenNotPaused nonReentrant onlyInitiator onlyActive {
         require(_milestoneIndex < milestones.length, "Invalid milestone");
         Milestone storage milestone = milestones[_milestoneIndex];
         require(milestone.completed, "Not completed");
@@ -216,7 +220,7 @@ contract AgentCovenant {
     /**
      * @notice Raise a dispute
      */
-    function raiseDispute(string calldata _reason) external onlyParty {
+    function raiseDispute(string calldata _reason) external whenNotPaused nonReentrant onlyParty {
         require(
             status == CovenantStatus.ACTIVE || status == CovenantStatus.PENDING,
             "Cannot dispute"

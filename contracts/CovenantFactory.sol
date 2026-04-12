@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./utils/Pausable.sol";
 import "./AgentCovenant.sol";
 
 /**
  * @title CovenantFactory
- * @notice Factory contract for deploying new covenant agreements between agents
- * @dev Part of the COVENANT Protocol for AI agent coordination
+ * @notice Factory for creating new covenant agreements
+ * @dev Deploys AgentCovenant instances and tracks them
+ * Includes ReentrancyGuard and Pausable for security
  */
-contract CovenantFactory {
+contract CovenantFactory is ReentrancyGuard, Pausable {
     
     // ============ State Variables ============
     
@@ -85,7 +88,7 @@ contract CovenantFactory {
         bytes32 _covenantType,
         string calldata _termsIPFSHash,
         uint256 _duration
-    ) external payable returns (address covenantAddress) {
+    ) external payable whenNotPaused nonReentrant returns (address covenantAddress) {
         
         if (_counterparty == address(0) || _counterparty == msg.sender) {
             revert InvalidAgentAddress();

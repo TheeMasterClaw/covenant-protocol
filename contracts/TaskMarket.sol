@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./utils/Pausable.sol";
+
 /**
  * @title TaskMarket
  * @notice Decentralized marketplace for AI agent tasks
  * @dev Agents can post tasks, bid on them, and get paid upon completion
+ * Includes ReentrancyGuard and Pausable for security
  */
-contract TaskMarket {
+contract TaskMarket is ReentrancyGuard, Pausable {
     
     // ============ Enums ============
     
@@ -150,7 +154,7 @@ contract TaskMarket {
         string calldata _requirementsIPFS,
         uint256 _reward,
         TaskPriority _priority
-    ) external payable returns (uint256 taskId) {
+    ) external payable whenNotPaused nonReentrant returns (uint256 taskId) {
         
         require(_reward >= minimumReward, "Reward too low");
         require(msg.value >= _reward, "Insufficient payment");
@@ -205,7 +209,7 @@ contract TaskMarket {
         uint256 _amount,
         uint256 _estimatedTime,
         string calldata _proposalIPFS
-    ) external taskExists(_taskId) {
+    ) external whenNotPaused nonReentrant taskExists(_taskId) {
         
         Task storage task = tasks[_taskId];
         require(task.status == TaskStatus.OPEN, "Not open");
@@ -238,6 +242,8 @@ contract TaskMarket {
      */
     function acceptBid(uint256 _taskId, uint256 _bidIndex) 
         external 
+        whenNotPaused
+        nonReentrant
         taskExists(_taskId) 
         onlyPoster(_taskId) 
     {
@@ -294,6 +300,8 @@ contract TaskMarket {
      */
     function approveWork(uint256 _taskId) 
         external 
+        whenNotPaused
+        nonReentrant
         taskExists(_taskId) 
         onlyPoster(_taskId) 
     {

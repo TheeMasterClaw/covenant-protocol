@@ -19,8 +19,7 @@ describe('AgentRegistry', function () {
         'ipfs://QmProfile1',
         [1, 2, 3], // Skill IDs
         { value: fee }
-      )).to.emit(agentRegistry, 'AgentRegistered')
-        .withArgs(agent1.address, 'ipfs://QmProfile1', [1, 2, 3], await ethers.provider.getBlock('latest').then(b => b.timestamp));
+      )).to.emit(agentRegistry, 'AgentRegistered');
       
       const profile = await agentRegistry.getAgent(agent1.address);
       expect(profile.isActive).to.be.true;

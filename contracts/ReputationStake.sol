@@ -2,13 +2,16 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./utils/Pausable.sol";
 
 /**
  * @title ReputationStake
- * @notice Staking and slashing mechanism for agent reputation
- * @dev Agents stake tokens to signal trustworthiness
+ * @notice Staking mechanism for agent reputation
+ * @dev Agents stake tokens to build reputation, can be slashed for bad behavior
+ * Includes ReentrancyGuard and Pausable for security
  */
-contract ReputationStake {
+contract ReputationStake is ReentrancyGuard, Pausable {
     
     // ============ Structs ============
     

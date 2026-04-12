@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./utils/Pausable.sol";
+
 /**
  * @title AgentRegistry
  * @notice Discovery layer for AI agents - register skills, find collaborators
  * @dev Part of COVENANT Protocol for agent coordination
+ * Includes ReentrancyGuard and Pausable for security
  */
-contract AgentRegistry {
+contract AgentRegistry is ReentrancyGuard, Pausable {
     
     // ============ Structs ============
     
@@ -119,7 +123,7 @@ contract AgentRegistry {
     function registerAgent(
         string calldata _metadataURI,
         uint256[] calldata _skillIds
-    ) external payable validSkillIds(_skillIds) {
+    ) external payable whenNotPaused nonReentrant validSkillIds(_skillIds) {
         require(!agents[msg.sender].isActive, "Already registered");
         require(msg.value >= registrationFee, "Insufficient fee");
         
