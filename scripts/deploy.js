@@ -13,8 +13,16 @@ async function main() {
 
   const deployedContracts = {};
 
+  // Deploy AgentRegistry
+  console.log('📜 Deploying AgentRegistry...');
+  const AgentRegistry = await hre.ethers.getContractFactory('AgentRegistry');
+  const agentRegistry = await AgentRegistry.deploy();
+  await agentRegistry.waitForDeployment();
+  deployedContracts.agentRegistry = await agentRegistry.getAddress();
+  console.log('✅ AgentRegistry deployed to:', deployedContracts.agentRegistry);
+
   // Deploy CovenantFactory
-  console.log('📜 Deploying CovenantFactory...');
+  console.log('\n📜 Deploying CovenantFactory...');
   const CovenantFactory = await hre.ethers.getContractFactory('CovenantFactory');
   const factory = await CovenantFactory.deploy(deployer.address);
   await factory.waitForDeployment();
@@ -54,6 +62,22 @@ async function main() {
     await reputationStake.waitForDeployment();
     deployedContracts.reputationStake = await reputationStake.getAddress();
     console.log('✅ ReputationStake deployed to:', deployedContracts.reputationStake);
+
+    // Deploy DisputeDAO
+    console.log('\n📜 Deploying DisputeDAO...');
+    const DisputeDAO = await hre.ethers.getContractFactory('DisputeDAO');
+    const disputeDAO = await DisputeDAO.deploy(
+      deployedContracts.stakeToken,
+      deployedContracts.reputationStake
+    );
+    await disputeDAO.waitForDeployment();
+    deployedContracts.disputeDAO = await disputeDAO.getAddress();
+    console.log('✅ DisputeDAO deployed to:', deployedContracts.disputeDAO);
+
+    // Authorize DisputeDAO as a slasher in ReputationStake
+    console.log('\n⚙️  Configuring permissions...');
+    await reputationStake.addSlasher(deployedContracts.disputeDAO);
+    console.log('✅ DisputeDAO authorized as slasher');
   }
 
   // Save deployment info

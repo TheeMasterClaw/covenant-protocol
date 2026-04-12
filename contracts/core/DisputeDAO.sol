@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../interfaces/ICovenant.sol";
 import "../interfaces/IReputationStake.sol";
 
@@ -196,7 +196,7 @@ contract DisputeDAO is ReentrancyGuard {
         require(msg.value >= disputeFee, "Insufficient fee");
         
         ICovenant covenant = ICovenant(_covenant);
-        require(covenant.status() == 3, "Covenant not disputed"); // DISPUTED status
+        require(uint256(covenant.status()) == 3, "Covenant not disputed"); // DISPUTED status
         
         disputeId = nextDisputeId++;
         Dispute storage d = disputes[disputeId];
@@ -459,7 +459,7 @@ contract DisputeDAO is ReentrancyGuard {
         address covenant,
         DisputeStatus status,
         uint256 stakeAmount,
-        uint256 jurorCount,
+        uint256 selectedJurorCount,
         bool canAppeal
     ) {
         Dispute storage d = disputes[_disputeId];

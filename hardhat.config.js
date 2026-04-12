@@ -6,6 +6,7 @@ module.exports = {
   solidity: {
     version: '0.8.20',
     settings: {
+      viaIR: true,
       optimizer: {
         enabled: true,
         runs: 200,
@@ -23,7 +24,7 @@ module.exports = {
     },
     xlayerTestnet: {
       url: 'https://testrpc.xlayer.tech',
-      chainId: 195,
+      chainId: 1952,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },

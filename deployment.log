@@ -1,0 +1,7 @@
+🚀 Deploying COVENANT Protocol...
+
+HardhatError: HH101: Hardhat was set to use chain id 195, but connected to a chain with id 1952.
+    at ChainIdValidatorProvider.request (/home/azureuser/covenant/node_modules/hardhat/src/internal/core/providers/chainId.ts:58:15)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at getSigners (/home/azureuser/covenant/node_modules/@nomicfoundation/hardhat-ethers/src/internal/helpers.ts:46:16)
+    at main (/home/azureuser/covenant/scripts/deploy.js:8:22)

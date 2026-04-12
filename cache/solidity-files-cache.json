@@ -2,12 +2,13 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/home/azureuser/covenant/contracts/AgentCovenant.sol": {
-      "lastModificationDate": 1775971545136,
+      "lastModificationDate": 1775973278386,
       "contentHash": "a3fe999670cc6f1bc9e9faf2ab48637c",
       "sourceName": "contracts/AgentCovenant.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -38,12 +39,13 @@
       ]
     },
     "/home/azureuser/covenant/contracts/CovenantFactory.sol": {
-      "lastModificationDate": 1775971545162,
+      "lastModificationDate": 1775973278386,
       "contentHash": "4c4f31775a0d1cd39a3c271a3fa4cc72",
       "sourceName": "contracts/CovenantFactory.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -76,12 +78,13 @@
       ]
     },
     "/home/azureuser/covenant/contracts/MockERC20.sol": {
-      "lastModificationDate": 1775971545166,
+      "lastModificationDate": 1775973278386,
       "contentHash": "d3138cf429523178e6b8cd5b5fafd338",
       "sourceName": "contracts/MockERC20.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -114,12 +117,13 @@
       ]
     },
     "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol": {
-      "lastModificationDate": 1775971514951,
+      "lastModificationDate": 1775973280006,
       "contentHash": "d15c4d05583536e080f1960ab282772d",
       "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -155,12 +159,13 @@
       ]
     },
     "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
-      "lastModificationDate": 1775971515369,
+      "lastModificationDate": 1775973280006,
       "contentHash": "9261adf6457863de3e9892f51317ec89",
       "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -191,12 +196,13 @@
       ]
     },
     "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/utils/Context.sol": {
-      "lastModificationDate": 1775971514579,
+      "lastModificationDate": 1775973280008,
       "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -227,12 +233,13 @@
       ]
     },
     "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol": {
-      "lastModificationDate": 1775971514682,
+      "lastModificationDate": 1775973280003,
       "contentHash": "bcc76f4747d56c28c40ae272ef3470a6",
       "sourceName": "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -265,12 +272,13 @@
       ]
     },
     "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
-      "lastModificationDate": 1775971515376,
+      "lastModificationDate": 1775973280006,
       "contentHash": "513778b30d2750f5d2b9b19bbcf748a5",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -303,12 +311,13 @@
       ]
     },
     "/home/azureuser/covenant/contracts/ReputationStake.sol": {
-      "lastModificationDate": 1775971545486,
+      "lastModificationDate": 1775973278386,
       "contentHash": "53fa88e961ccbafa57d1c2bcd515dcc7",
       "sourceName": "contracts/ReputationStake.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -341,12 +350,13 @@
       ]
     },
     "/home/azureuser/covenant/contracts/TaskMarket.sol": {
-      "lastModificationDate": 1775971545346,
+      "lastModificationDate": 1775973278386,
       "contentHash": "6b5ab7b8a5893a9a29c733f36412fd82",
       "sourceName": "contracts/TaskMarket.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -374,6 +384,235 @@
       ],
       "artifacts": [
         "TaskMarket"
+      ]
+    },
+    "/home/azureuser/covenant/contracts/core/DisputeDAO.sol": {
+      "lastModificationDate": 1775976686118,
+      "contentHash": "8479e01a44b76e25602989e92228d7c4",
+      "sourceName": "contracts/core/DisputeDAO.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
+        "../interfaces/ICovenant.sol",
+        "../interfaces/IReputationStake.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "DisputeDAO"
+      ]
+    },
+    "/home/azureuser/covenant/contracts/interfaces/ICovenant.sol": {
+      "lastModificationDate": 1775976640981,
+      "contentHash": "9684bcb1ba1fddd633d0b1040e2d4459",
+      "sourceName": "contracts/interfaces/ICovenant.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ICovenant"
+      ]
+    },
+    "/home/azureuser/covenant/contracts/interfaces/IReputationStake.sol": {
+      "lastModificationDate": 1775976642824,
+      "contentHash": "a54df2b5cfebd897be9c291a71739fc8",
+      "sourceName": "contracts/interfaces/IReputationStake.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IReputationStake"
+      ]
+    },
+    "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol": {
+      "lastModificationDate": 1775973280008,
+      "contentHash": "6e5efb502dd6652d12ad15eea2c5bdf4",
+      "sourceName": "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./StorageSlot.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ReentrancyGuard"
+      ]
+    },
+    "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/utils/StorageSlot.sol": {
+      "lastModificationDate": 1775973280008,
+      "contentHash": "e656d64c4ce918f3d13030b91c935134",
+      "sourceName": "@openzeppelin/contracts/utils/StorageSlot.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "StorageSlot"
+      ]
+    },
+    "/home/azureuser/covenant/contracts/AgentRegistry.sol": {
+      "lastModificationDate": 1775978833419,
+      "contentHash": "de8cbe07d47fbb94e9c6016254c85cc8",
+      "sourceName": "contracts/AgentRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "AgentRegistry"
       ]
     }
   }

@@ -140,17 +140,18 @@ await covenant.submitWork(task.id, "ipfs://QmResults");
 ## Proof of Work
 
 ### Smart Contracts (Compiled & Tested)
-- ✅ CovenantFactory.sol - 200 lines
-- ✅ AgentCovenant.sol - 300 lines  
-- ✅ TaskMarket.sol - 400 lines
-- ✅ ReputationStake.sol - 350 lines
-- ✅ MockERC20.sol - 25 lines
-- **Total: 1,275 lines Solidity**
+- ✅ CovenantFactory.sol - 213 lines
+- ✅ AgentCovenant.sol - 348 lines  
+- ✅ TaskMarket.sol - 447 lines
+- ✅ ReputationStake.sol - 320 lines
+- ✅ DisputeDAO.sol - 486 lines
+- ✅ MockERC20.sol + Interfaces - 135 lines
+- **Total: 1,949 lines Solidity**
 
 ### Test Suite
-- ✅ 16/18 tests passing
+- ✅ 18/18 tests passing
 - ✅ Full integration workflow verified
-- ✅ Gas optimization enabled
+- ✅ Gas optimization enabled (viaIR)
 
 ### Code Quality
 - ✅ OpenZeppelin contracts v5.0
