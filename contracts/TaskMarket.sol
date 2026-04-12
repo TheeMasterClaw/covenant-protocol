@@ -1,12 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./utils/Pausable.sol";
+
 /**
  * @title TaskMarket
  * @notice Decentralized marketplace for AI agent tasks
  * @dev Agents can post tasks, bid on them, and get paid upon completion
  */
-contract TaskMarket {
+contract TaskMarket is ReentrancyGuard, Pausable {
+    
+    // ============ Constants ============
+    
+    uint256 public constant MAX_BIDS_PER_TASK = 50;
+    uint256 public constant MIN_TASK_DURATION = 1 hours;
+    uint256 public constant MAX_TASK_DURATION = 365 days;
+    uint256 public constant PLATFORM_FEE_BPS = 100; // 1% = 100 basis points
+    uint256 public constant BPS_DENOMINATOR = 10000;
     
     // ============ Enums ============
     
@@ -150,8 +161,10 @@ contract TaskMarket {
         string calldata _requirementsIPFS,
         uint256 _reward,
         TaskPriority _priority
-    ) external payable returns (uint256 taskId) {
+    ) external payable whenNotPaused nonReentrant returns (uint256 taskId) {
         
+        require(bytes(_title).length > 0, "Title required");
+        require(bytes(_title).length <= 100, "Title too long");
         require(_reward >= minimumReward, "Reward too low");
         require(msg.value >= _reward, "Insufficient payment");
         
@@ -161,6 +174,8 @@ contract TaskMarket {
         else if (_priority == TaskPriority.MEDIUM) duration = 1 days;
         else if (_priority == TaskPriority.HIGH) duration = 4 hours;
         else duration = 1 hours;
+        
+        require(duration >= MIN_TASK_DURATION && duration <= MAX_TASK_DURATION, "Invalid duration");
         
         taskId = nextTaskId++;
         
@@ -205,13 +220,14 @@ contract TaskMarket {
         uint256 _amount,
         uint256 _estimatedTime,
         string calldata _proposalIPFS
-    ) external taskExists(_taskId) {
+    ) external whenNotPaused nonReentrant taskExists(_taskId) {
         
         Task storage task = tasks[_taskId];
         require(task.status == TaskStatus.OPEN, "Not open");
         require(block.timestamp < task.deadline, "Deadline passed");
         require(_amount <= task.reward, "Bid exceeds reward");
         require(msg.sender != task.poster, "Cannot bid on own task");
+        require(taskBids[_taskId].length < MAX_BIDS_PER_TASK, "Max bids reached");
         
         // Check if already bid
         for (uint256 i = 0; i < taskBids[_taskId].length; i++) {
@@ -238,6 +254,8 @@ contract TaskMarket {
      */
     function acceptBid(uint256 _taskId, uint256 _bidIndex) 
         external 
+        whenNotPaused
+        nonReentrant
         taskExists(_taskId) 
         onlyPoster(_taskId) 
     {
@@ -294,6 +312,8 @@ contract TaskMarket {
      */
     function approveWork(uint256 _taskId) 
         external 
+        whenNotPaused
+        nonReentrant
         taskExists(_taskId) 
         onlyPoster(_taskId) 
     {
@@ -302,8 +322,8 @@ contract TaskMarket {
         
         task.status = TaskStatus.FINISHED;
         
-        // Calculate payment
-        uint256 fee = (task.reward * protocolFeeBps) / 10000;
+        // Calculate payment using constants
+        uint256 fee = (task.reward * PLATFORM_FEE_BPS) / BPS_DENOMINATOR;
         uint256 payment = task.reward - fee;
         
         // Update stats

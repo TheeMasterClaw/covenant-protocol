@@ -1,12 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./utils/Pausable.sol";
+
 /**
  * @title AgentRegistry
  * @notice Discovery layer for AI agents - register skills, find collaborators
  * @dev Part of COVENANT Protocol for agent coordination
  */
-contract AgentRegistry {
+contract AgentRegistry is ReentrancyGuard, Pausable {
+    
+    // ============ Constants ============
+    
+    uint256 public constant REGISTRATION_FEE = 0.001 ether;
+    uint256 public constant MAX_SKILLS_PER_AGENT = 20;
+    uint256 public constant MIN_METADATA_LENGTH = 10;
+    uint256 public constant MAX_METADATA_LENGTH = 500;
     
     // ============ Structs ============
     
@@ -43,7 +53,7 @@ contract AgentRegistry {
     uint256 public totalAgents = 0;
     
     address public owner;
-    uint256 public registrationFee = 0.001 ether;
+    uint256 public registrationFee = REGISTRATION_FEE; // Can be updated by owner
     
     // ============ Events ============
     
@@ -119,13 +129,17 @@ contract AgentRegistry {
     function registerAgent(
         string calldata _metadataURI,
         uint256[] calldata _skillIds
-    ) external payable validSkillIds(_skillIds) {
+    ) external payable whenNotPaused nonReentrant validSkillIds(_skillIds) {
         require(!agents[msg.sender].isActive, "Already registered");
-        require(msg.value >= registrationFee, "Insufficient fee");
+        require(msg.value >= REGISTRATION_FEE, "Insufficient fee");
+        require(_skillIds.length > 0, "Must have at least one skill");
+        require(_skillIds.length <= MAX_SKILLS_PER_AGENT, "Too many skills");
+        require(bytes(_metadataURI).length >= MIN_METADATA_LENGTH, "Metadata too short");
+        require(bytes(_metadataURI).length <= MAX_METADATA_LENGTH, "Metadata too long");
         
         // Refund excess
-        if (msg.value > registrationFee) {
-            (bool success, ) = msg.sender.call{value: msg.value - registrationFee}("");
+        if (msg.value > REGISTRATION_FEE) {
+            (bool success, ) = msg.sender.call{value: msg.value - REGISTRATION_FEE}("");
             require(success, "Refund failed");
         }
         
