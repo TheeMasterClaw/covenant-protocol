@@ -48,6 +48,7 @@ function MobileNav() {
     { path: '/covenants', label: 'Covenants', icon: '📜' },
     { path: '/tasks', label: 'Tasks', icon: '⚡' },
     { path: '/disputes', label: 'Disputes', icon: '⚖️' },
+    { path: '/loyalty', label: 'Loyalty', icon: '⚔️' },
     { path: '/reputation', label: 'Rep', icon: '★' },
   ];
   
@@ -209,6 +210,7 @@ function AppContent() {
             <Route path="/tasks" element={<TaskMarket contracts={contracts} account={address} />} />
             <Route path="/reputation" element={<Reputation contracts={contracts} account={address} />} />
             <Route path="/disputes" element={<Disputes contracts={contracts} account={address} />} />
+            <Route path="/loyalty" element={<LoyaltyPage onTestLoyalty={openLoyaltyChecker} />} />
           </Routes>
         </main>
         
@@ -250,6 +252,7 @@ function Header({ isConnected, isWrongNetwork, onSwitchNetwork, themeToggle }) {
         <Link to="/tasks" className={`nav-item ${location.pathname === '/tasks' ? 'active' : ''}`}>Task Market</Link>
         <Link to="/disputes" className={`nav-item ${location.pathname === '/disputes' ? 'active' : ''}`}>Disputes</Link>
         <Link to="/reputation" className={`nav-item ${location.pathname === '/reputation' ? 'active' : ''}`}>Reputation</Link>
+        <Link to="/loyalty" className={`nav-item ${location.pathname === '/loyalty' ? 'active' : ''}`}>⚔️ Loyalty</Link>
       </nav>
       
       <div className="header-actions">
@@ -1206,6 +1209,137 @@ function Disputes({ contracts, account }) {
             <p>Majority decision executed</p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function LoyaltyPage({ onTestLoyalty }) {
+  const allCovenants = [
+    { id: 2847, title: 'Intelligence Analysis Partnership', initiator: 'M1', counterparty: 'D4', amount: '5.0', status: 'Active', startDate: '2026-04-01', milestones: [{title: 'Kickoff', status: 'completed'}, {title: 'Data Collection', status: 'in_progress'}, {title: 'Analysis', status: 'pending'}], progress: 35 },
+    { id: 2845, title: 'Smart Contract Audit', counterparty: '0xabcd...efgh', amount: '12.5', startDate: '2026-03-15', endDate: '2026-04-15', milestones: [{title: 'Initial Review', status: 'completed'}, {title: 'Deep Audit', status: 'completed'}, {title: 'Report', status: 'in_progress'}], progress: 85 },
+    { id: 2849, title: 'Cross-Chain Bridge Integration', counterparty: '0x9876...5432', amount: '25.0', proposedDate: '2026-04-10', status: 'awaiting_acceptance' },
+    { id: 2846, title: 'Cross-Chain Arbitrage Alliance', initiator: 'A7', counterparty: 'B2', amount: '12.5', status: 'Pending', proposedDate: '2026-04-10' },
+    { id: 2843, title: 'Sentiment Analysis Task Force', initiator: 'D2', counterparty: 'D9', amount: '2.0', status: 'Disputed', disputeReason: 'Milestone delivery disagreement' },
+    { id: 2841, title: 'API Development Contract', counterparty: '0xasdf...ghjk', amount: '1.5', status: 'evidence' },
+    { id: 2839, title: 'Security Audit Dispute', counterparty: '0x9876...5432', amount: '3.0', status: 'voting' },
+    { id: 2834, title: 'DeFi Strategy Development', counterparty: '0xwxyz...mnop', amount: '8.0', completedDate: '2026-03-20', rating: 5 },
+    { id: 2821, title: 'Security Assessment', counterparty: '0xqwer...tyui', amount: '3.5', completedDate: '2026-02-28', rating: 4 },
+  ];
+
+  const getLoyaltyBadge = (covenant) => {
+    if (covenant.status === 'Disputed' || covenant.status === 'voting' || covenant.status === 'evidence') return { label: 'Oathbreaker', class: 'oathbreaker' };
+    if (covenant.status === 'Pending' || covenant.status === 'awaiting_acceptance') return { label: 'Questionable', class: 'questionable' };
+    if (covenant.progress && covenant.progress < 30) return { label: 'Suspicious', class: 'suspicious' };
+    if (covenant.completedDate) return { label: 'Honored', class: 'faithful' };
+    return { label: 'Faithful', class: 'faithful' };
+  };
+
+  const getScore = (covenant) => {
+    if (covenant.status === 'Disputed' || covenant.status === 'voting' || covenant.status === 'evidence') return 25;
+    if (covenant.status === 'Pending' || covenant.status === 'awaiting_acceptance') return 72;
+    if (covenant.progress && covenant.progress < 30) return 55;
+    if (covenant.completedDate) return 100;
+    return 100;
+  };
+
+  return (
+    <div className="container">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">⚔️ Vow Loyalty Center</h1>
+          <p className="page-subtitle">Test covenant fidelity and detect breaches automatically</p>
+        </div>
+      </div>
+
+      <div className="reputation-overview" style={{ marginBottom: '32px' }}>
+        <div className="reputation-card main">
+          <div className="score-section">
+            <div className="score-circle" style={{ background: 'var(--gradient-primary)' }}>
+              <span className="score-value">{allCovenants.length}</span>
+              <span className="score-label">Covenants</span>
+            </div>
+            <div className="rank-badge">Scanned</div>
+          </div>
+          <div className="stats-grid">
+            <div className="stat-box">
+              <span className="stat-number">{allCovenants.filter(c => getLoyaltyBadge(c).class === 'faithful').length}</span>
+              <span className="stat-label">Faithful</span>
+            </div>
+            <div className="stat-box">
+              <span className="stat-number">{allCovenants.filter(c => getLoyaltyBadge(c).class === 'questionable').length}</span>
+              <span className="stat-label">Questionable</span>
+            </div>
+            <div className="stat-box">
+              <span className="stat-number">{allCovenants.filter(c => getLoyaltyBadge(c).class === 'oathbreaker').length}</span>
+              <span className="stat-label">Oathbreaker</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="reputation-breakdown">
+          <h4>Loyalty Distribution</h4>
+          <div className="breakdown-bars">
+            <div className="breakdown-item">
+              <span>Faithful</span>
+              <div className="breakdown-bar"><div className="fill" style={{width: `${(allCovenants.filter(c => getLoyaltyBadge(c).class === 'faithful').length / allCovenants.length) * 100}%`}} /></div>
+              <span>{Math.round((allCovenants.filter(c => getLoyaltyBadge(c).class === 'faithful').length / allCovenants.length) * 100)}%</span>
+            </div>
+            <div className="breakdown-item">
+              <span>Questionable</span>
+              <div className="breakdown-bar"><div className="fill" style={{width: `${(allCovenants.filter(c => getLoyaltyBadge(c).class === 'questionable').length / allCovenants.length) * 100}%`, background: 'var(--accent-warning)'}} /></div>
+              <span>{Math.round((allCovenants.filter(c => getLoyaltyBadge(c).class === 'questionable').length / allCovenants.length) * 100)}%</span>
+            </div>
+            <div className="breakdown-item">
+              <span>Oathbreaker</span>
+              <div className="breakdown-bar"><div className="fill" style={{width: `${(allCovenants.filter(c => getLoyaltyBadge(c).class === 'oathbreaker').length / allCovenants.length) * 100}%`, background: 'var(--accent-danger)'}} /></div>
+              <span>{Math.round((allCovenants.filter(c => getLoyaltyBadge(c).class === 'oathbreaker').length / allCovenants.length) * 100)}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 className="section-title">All Covenants</h2>
+      <div className="tasks-list">
+        {allCovenants.map((covenant, index) => {
+          const badge = getLoyaltyBadge(covenant);
+          const score = getScore(covenant);
+          return (
+            <motion.div
+              key={covenant.id}
+              className="task-list-item"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <div className="task-main">
+                <h4>{covenant.title}</h4>
+                <p>Covenant #{covenant.id} • {covenant.amount} ETH</p>
+                <div className="task-tags">
+                  <span className={`loyalty-badge ${badge.class}`}>{badge.label}</span>
+                  <span className="status-tag" style={{ 
+                    background: score >= 70 ? 'rgba(0,245,160,0.1)' : score >= 40 ? 'rgba(255,170,0,0.1)' : 'rgba(255,71,87,0.1)',
+                    color: score >= 70 ? 'var(--accent-success)' : score >= 40 ? 'var(--accent-warning)' : 'var(--accent-danger)',
+                    border: `1px solid ${score >= 70 ? 'rgba(0,245,160,0.2)' : score >= 40 ? 'rgba(255,170,0,0.2)' : 'rgba(255,71,87,0.2)'}`
+                  }}>
+                    Score: {score}
+                  </span>
+                </div>
+              </div>
+              <div className="task-stats" style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  {covenant.status}
+                </div>
+              </div>
+              <button 
+                className="test-loyalty-btn"
+                onClick={() => onTestLoyalty && onTestLoyalty(covenant)}
+              >
+                ⚔️ Test Loyalty
+              </button>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
