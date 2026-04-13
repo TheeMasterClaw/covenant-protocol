@@ -1,0 +1,111 @@
+specVersion: 0.0.4
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ReputationStake
+    network: xlayer
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: ReputationStake
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - ReputationScore
+        - ReputationStake
+        - ReputationHistory
+        - ReputationStakePool
+      abis:
+        - name: ReputationStake
+          file: ./abis/ReputationStake.json
+        - name: ReputationOracle
+          file: ./abis/ReputationOracle.json
+      eventHandlers:
+        - event: Staked(indexed address,uint256,uint256)
+          handler: handleStaked
+        - event: Unstaked(indexed address,uint256,uint256)
+          handler: handleUnstaked
+        - event: RewardsClaimed(indexed address,uint256)
+          handler: handleRewardsClaimed
+        - event: StakeLocked(indexed address,uint256,uint256)
+          handler: handleStakeLocked
+        - event: StakeUnlocked(indexed address,uint256)
+          handler: handleStakeUnlocked
+      file: ./src/stakeMapping.ts
+  - kind: ethereum
+    name: ReputationOracle
+    network: xlayer
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: ReputationOracle
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - ReputationScore
+        - ReputationOracle
+        - ReputationHistory
+      abis:
+        - name: ReputationOracle
+          file: ./abis/ReputationOracle.json
+      eventHandlers:
+        - event: ScoreUpdated(indexed address,uint256,uint256,string)
+          handler: handleScoreUpdated
+        - event: OracleAdded(indexed address,uint256)
+          handler: handleOracleAdded
+        - event: OracleRemoved(indexed address)
+          handler: handleOracleRemoved
+        - event: OracleWeightUpdated(indexed address,uint256)
+          handler: handleOracleWeightUpdated
+      file: ./src/oracleMapping.ts
+  - kind: ethereum
+    name: ReputationBoost
+    network: xlayer
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: ReputationBoost
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - ReputationBoost
+        - ReputationAchievement
+      abis:
+        - name: ReputationBoost
+          file: ./abis/ReputationBoost.json
+      eventHandlers:
+        - event: BoostApplied(indexed address,string,uint256,uint256)
+          handler: handleBoostApplied
+        - event: BoostExpired(indexed address,string)
+          handler: handleBoostExpired
+        - event: AchievementUnlocked(indexed address,string,string,uint256)
+          handler: handleAchievementUnlocked
+      file: ./src/boostMapping.ts
+  - kind: ethereum
+    name: ReputationDecay
+    network: xlayer
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: ReputationDecay
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - ReputationDecay
+        - ReputationScore
+      abis:
+        - name: ReputationDecay
+          file: ./abis/ReputationDecay.json
+      eventHandlers:
+        - event: DecayApplied(indexed address,uint256,uint256)
+          handler: handleDecayApplied
+      file: ./src/decayMapping.ts

@@ -1,0 +1,104 @@
+type ReputationScore @entity {
+  id: ID!
+  user: Bytes!
+  score: BigInt!
+  tier: ReputationTier!
+  stakedAmount: BigInt!
+  lockedAmount: BigInt!
+  updatedAt: BigInt!
+  createdAt: BigInt!
+  decayFactor: BigInt!
+  boostMultiplier: BigInt!
+  consecutiveMonths: BigInt!
+  totalTasksCompleted: BigInt!
+  totalTasksCreated: BigInt!
+  totalDisputesWon: BigInt!
+  totalDisputesLost: BigInt!
+  averageRating: BigInt!
+  chainId: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type ReputationStake @entity {
+  id: ID!
+  user: Bytes!
+  amount: BigInt!
+  stakedAt: BigInt!
+  unlockTime: BigInt!
+  withdrawn: Boolean!
+  withdrawnAt: BigInt
+  rewardsClaimed: BigInt!
+  blockNumber: BigInt!
+}
+
+type ReputationHistory @entity {
+  id: ID!
+  user: Bytes!
+  oldScore: BigInt!
+  newScore: BigInt!
+  change: BigInt!
+  reason: String!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type ReputationBoost @entity {
+  id: ID!
+  user: Bytes!
+  boostType: String!
+  multiplier: BigInt!
+  expiresAt: BigInt!
+  createdAt: BigInt!
+  active: Boolean!
+  blockNumber: BigInt!
+}
+
+type ReputationAchievement @entity {
+  id: ID!
+  user: Bytes!
+  achievementType: String!
+  name: String!
+  description: String!
+  tier: BigInt!
+  unlockedAt: BigInt!
+  metadataURI: String
+  blockNumber: BigInt!
+}
+
+type ReputationOracle @entity {
+  id: ID!
+  oracle: Bytes!
+  active: Boolean!
+  weight: BigInt!
+  totalUpdates: BigInt!
+  addedAt: BigInt!
+}
+
+type ReputationDecay @entity {
+  id: ID!
+  user: Bytes!
+  lastDecayAt: BigInt!
+  decayRate: BigInt!
+  decayApplied: BigInt!
+  blockNumber: BigInt!
+}
+
+type ReputationStakePool @entity {
+  id: ID!
+  totalStaked: BigInt!
+  rewardRate: BigInt!
+  lastUpdateTime: BigInt!
+  rewardPerTokenStored: BigInt!
+  totalRewardsDistributed: BigInt!
+}
+
+enum ReputationTier {
+  NOVICE
+  APPRENTICE
+  JOURNEYMAN
+  EXPERT
+  MASTER
+  LEGEND
+}

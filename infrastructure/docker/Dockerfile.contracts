@@ -1,0 +1,14 @@
+# COVENANT Protocol - Contract Builder
+FROM ghcr.io/foundry-rs/foundry:latest AS builder
+
+WORKDIR /app
+COPY contracts-v2/ ./contracts-v2/
+COPY lib/ ./lib/
+COPY foundry.toml .
+
+RUN forge build --contracts contracts-v2
+
+# Runtime image with compiled artifacts
+FROM alpine:latest
+WORKDIR /artifacts
+COPY --from=builder /app/out ./

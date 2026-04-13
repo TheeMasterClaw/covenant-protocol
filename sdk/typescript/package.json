@@ -1,0 +1,57 @@
+{
+  "name": "@covenant/sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for COVENANT Protocol - A decentralized agreement framework",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --ext .ts",
+    "test": "jest",
+    "docs": "typedoc --out docs src"
+  },
+  "keywords": [
+    "covenant",
+    "protocol",
+    "ethereum",
+    "web3",
+    "defi",
+    "agreement",
+    "task",
+    "reputation",
+    "dispute"
+  ],
+  "author": "COVENANT Protocol",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.11.1",
+    "viem": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.11",
+    "ts-jest": "^29.1.1",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "typedoc": "^0.25.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/covenant-protocol/sdk-typescript"
+  },
+  "bugs": {
+    "url": "https://github.com/covenant-protocol/sdk-typescript/issues"
+  },
+  "homepage": "https://covenant-protocol.io"
+}

@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: covenant
+      POSTGRES_PASSWORD: covenant
+      POSTGRES_DB: covenant_protocol
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  covenant-api:
+    build:
+      context: ../../services/covenant-api
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://covenant:covenant@postgres:5432/covenant_protocol
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+  websocket-server:
+    build:
+      context: ../../services/websocket-server
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+
+  agent-api:
+    build:
+      context: ../../services/agent-api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://covenant:covenant@postgres:5432/covenant_protocol
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ../../frontend-v2
+      dockerfile: ../infrastructure/docker/Dockerfile.frontend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:

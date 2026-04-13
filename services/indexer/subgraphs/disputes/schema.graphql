@@ -1,0 +1,132 @@
+type Dispute @entity {
+  id: ID!
+  disputeId: BigInt!
+  covenant: Bytes!
+  taskId: BigInt!
+  initiator: Bytes!
+  respondent: Bytes!
+  reason: String!
+  status: DisputeStatus!
+  category: String!
+  createdAt: BigInt!
+  evidenceDeadline: BigInt!
+  votingStartTime: BigInt
+  votingEndTime: BigInt
+  resolvedAt: BigInt
+  resolution: DisputeResolution @derivedFrom(field: "dispute")
+  jurySize: BigInt!
+  minStakeToVote: BigInt!
+  totalEvidence: BigInt!
+  totalVotes: BigInt!
+  votesForInitiator: BigInt!
+  votesForRespondent: BigInt!
+  appealCount: BigInt!
+  finalOutcome: String
+  penaltyAmount: BigInt!
+  executor: Bytes
+  chainId: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type DisputeEvidence @entity {
+  id: ID!
+  dispute: Dispute!
+  submitter: Bytes!
+  evidenceURI: String!
+  evidenceHash: Bytes!
+  description: String!
+  submittedAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type DisputeVote @entity {
+  id: ID!
+  dispute: Dispute!
+  voter: Bytes!
+  voteForInitiator: Boolean!
+  stakeAmount: BigInt!
+  justification: String
+  votedAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type DisputeResolution @entity {
+  id: ID!
+  dispute: Dispute!
+  resolver: Bytes!
+  outcome: ResolutionOutcome!
+  penaltyAmount: BigInt!
+  reasoningURI: String
+  executedAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type DisputeJury @entity {
+  id: ID!
+  dispute: Dispute!
+  juror: Bytes!
+  selectedAt: BigInt!
+  served: Boolean!
+  compensated: Boolean!
+  compensationAmount: BigInt!
+  blockNumber: BigInt!
+}
+
+type DisputeAppeal @entity {
+  id: ID!
+  dispute: Dispute!
+  appellant: Bytes!
+  appealReason: String!
+  bondAmount: BigInt!
+  appealNumber: BigInt!
+  createdAt: BigInt!
+  resolvedAt: BigInt
+  upheld: Boolean
+  blockNumber: BigInt!
+}
+
+type DisputeDAO @entity {
+  id: ID!
+  address: Bytes!
+  name: String!
+  totalDisputes: BigInt!
+  totalResolved: BigInt!
+  totalAppealed: BigInt!
+  activeJurors: BigInt!
+  minJurySize: BigInt!
+  votingPeriod: BigInt!
+  appealPeriod: BigInt!
+  evidencePeriod: BigInt!
+  quorumBps: BigInt!
+  paused: Boolean!
+}
+
+type JurorProfile @entity {
+  id: ID!
+  juror: Bytes!
+  totalCases: BigInt!
+  totalVotes: BigInt!
+  correctVotes: BigInt!
+  totalStaked: BigInt!
+  totalEarned: BigInt!
+  active: Boolean!
+  reputationScore: BigInt!
+  joinedAt: BigInt!
+  lastActivityAt: BigInt!
+}
+
+enum DisputeStatus {
+  OPEN
+  EVIDENCE
+  VOTING
+  APPEAL
+  RESOLVED
+}
+
+enum ResolutionOutcome {
+  INITIATOR_WINS
+  RESPONDENT_WINS
+  SPLIT
+  DISMISSED
+}

@@ -1,0 +1,137 @@
+specVersion: 0.0.4
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: DisputeDAO
+    network: xlayer
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: DisputeDAO
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - DisputeDAO
+        - Dispute
+        - JurorProfile
+      abis:
+        - name: DisputeDAO
+          file: ./abis/DisputeDAO.json
+        - name: DisputeJury
+          file: ./abis/DisputeJury.json
+        - name: DisputeResolution
+          file: ./abis/DisputeResolution.json
+      eventHandlers:
+        - event: DisputeCreated(indexed uint256,indexed address,indexed uint256,address,address,string)
+          handler: handleDisputeCreated
+        - event: JurorAdded(indexed address,uint256)
+          handler: handleJurorAdded
+        - event: JurorRemoved(indexed address)
+          handler: handleJurorRemoved
+        - event: DAOPaused(address)
+          handler: handleDAOPaused
+        - event: DAOUnpaused(address)
+          handler: handleDAOUnpaused
+        - event: VotingParametersUpdated(uint256,uint256,uint256,uint256)
+          handler: handleVotingParametersUpdated
+      file: ./src/daoMapping.ts
+  - kind: ethereum
+    name: DisputeJury
+    network: xlayer
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: DisputeJury
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - DisputeJury
+        - Dispute
+      abis:
+        - name: DisputeJury
+          file: ./abis/DisputeJury.json
+      eventHandlers:
+        - event: JurorsSelected(indexed uint256,address[],uint256)
+          handler: handleJurorsSelected
+        - event: JurorCompensated(indexed uint256,indexed address,uint256)
+          handler: handleJurorCompensated
+      file: ./src/juryMapping.ts
+  - kind: ethereum
+    name: DisputeEvidence
+    network: xlayer
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: DisputeEvidence
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - DisputeEvidence
+        - Dispute
+      abis:
+        - name: DisputeEvidence
+          file: ./abis/DisputeEvidence.json
+      eventHandlers:
+        - event: EvidenceSubmitted(indexed uint256,indexed address,string,bytes32,uint256)
+          handler: handleEvidenceSubmitted
+      file: ./src/evidenceMapping.ts
+  - kind: ethereum
+    name: DisputeVoting
+    network: xlayer
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: DisputeVoting
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - DisputeVote
+        - Dispute
+      abis:
+        - name: DisputeVoting
+          file: ./abis/DisputeVoting.json
+      eventHandlers:
+        - event: VoteCast(indexed uint256,indexed address,bool,uint256,string)
+          handler: handleVoteCast
+        - event: VotingStarted(indexed uint256,uint256,uint256)
+          handler: handleVotingStarted
+        - event: VotingEnded(indexed uint256,uint256,uint256)
+          handler: handleVotingEnded
+      file: ./src/votingMapping.ts
+  - kind: ethereum
+    name: DisputeResolution
+    network: xlayer
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: DisputeResolution
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - DisputeResolution
+        - Dispute
+        - DisputeAppeal
+      abis:
+        - name: DisputeResolution
+          file: ./abis/DisputeResolution.json
+      eventHandlers:
+        - event: DisputeResolved(indexed uint256,indexed address,uint8,uint256,string)
+          handler: handleDisputeResolved
+        - event: ResolutionExecuted(indexed uint256,indexed address,uint256)
+          handler: handleResolutionExecuted
+        - event: AppealFiled(indexed uint256,indexed address,string,uint256,uint256)
+          handler: handleAppealFiled
+        - event: AppealResolved(indexed uint256,bool,uint256)
+          handler: handleAppealResolved
+      file: ./src/resolutionMapping.ts

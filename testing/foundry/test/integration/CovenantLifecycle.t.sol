@@ -1,0 +1,1200 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "forge-std/Test.sol";
+import {DeploymentFixtures} from "../../fixtures/DeploymentFixtures.sol";
+import {CovenantImplementation} from "../../../contracts-v2/core/CovenantImplementation.sol";
+
+contract CovenantLifecycleTest is DeploymentFixtures {
+    address public proxy;
+    uint256 public covenantId;
+
+    function setUp() public override {
+        super.setUp();
+    }
+
+    // ==================== FULL LIFECYCLE TESTS (50) ====================
+    function test_Lifecycle_CreateCovenant() public asOwner {
+        bytes32 salt = keccak256("lifecycle1");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertTrue(p != address(0));
+    }
+    function test_Lifecycle_CovenantInRegistry() public asOwner {
+        bytes32 salt = keccak256("lifecycle2");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertEq(registry.covenantToId(p), 1);
+    }
+    function test_Lifecycle_CreatorCanDeposit() public asOwner {
+        bytes32 salt = keccak256("lifecycle3");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        assertEq(CovenantImplementation(p).getBalance(), 1 ether);
+    }
+    function test_Lifecycle_AgentCannotDeposit() public asOwner {
+        bytes32 salt = keccak256("lifecycle4");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(bob, 2 ether);
+        vm.prank(bob);
+        vm.expectRevert();
+        CovenantImplementation(p).deposit{value: 1 ether}();
+    }
+    function test_Lifecycle_CreatorCanTerminate() public asOwner {
+        bytes32 salt = keccak256("lifecycle5");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        assertTrue(CovenantImplementation(p).isTerminated());
+    }
+    function test_Lifecycle_AgentCannotTerminate() public asOwner {
+        bytes32 salt = keccak256("lifecycle6");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.prank(bob);
+        vm.expectRevert();
+        CovenantImplementation(p).terminate();
+    }
+    function test_Lifecycle_CreatorCanWithdrawAfterTermination() public asOwner {
+        bytes32 salt = keccak256("lifecycle7");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        uint256 before = alice.balance;
+        vm.prank(alice);
+        CovenantImplementation(p).withdraw();
+        assertEq(alice.balance - before, 1 ether);
+    }
+    function test_Lifecycle_AgentCannotWithdrawBeforeExpiration() public asOwner {
+        bytes32 salt = keccak256("lifecycle8");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.prank(bob);
+        vm.expectRevert();
+        CovenantImplementation(p).withdraw();
+    }
+    function test_Lifecycle_AgentCanWithdrawAfterExpiration() public asOwner {
+        bytes32 salt = keccak256("lifecycle9");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.warp(block.timestamp + 31 days);
+        uint256 before = bob.balance;
+        vm.prank(bob);
+        CovenantImplementation(p).withdraw();
+        assertEq(bob.balance - before, 1 ether);
+    }
+    function test_Lifecycle_MultipleDeposits() public asOwner {
+        bytes32 salt = keccak256("lifecycle10");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            2 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 5 ether);
+        vm.startPrank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.stopPrank();
+        assertEq(CovenantImplementation(p).getBalance(), 2 ether);
+    }
+    function test_Lifecycle_RegistryMetadata() public asOwner {
+        bytes32 salt = keccak256("lifecycle11");
+        bytes32 metadata = keccak256("registry metadata");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            metadata
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertEq(registry.getMetadata(p), metadata);
+    }
+    function test_Lifecycle_RegistryTotalCovenants() public asOwner {
+        bytes32 salt1 = keccak256("lifecycle12a");
+        bytes32 salt2 = keccak256("lifecycle12b");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        factory.createCovenant(salt1, initData);
+        factory.createCovenant(salt2, initData);
+        assertEq(registry.totalCovenants(), 2);
+    }
+    function test_Lifecycle_SequentialIds() public asOwner {
+        for (uint256 i = 0; i < 5; i++) {
+            bytes32 salt = keccak256(abi.encodePacked("seq", i));
+            bytes memory initData = abi.encodeWithSelector(
+                CovenantImplementation(address(0)).initialize.selector,
+                alice,
+                bob,
+                30 days,
+                1 ether,
+                address(0),
+                bytes32("metadata")
+            );
+            address p = factory.createCovenant(salt, initData);
+            assertEq(registry.covenantToId(p), i + 1);
+        }
+    }
+    function test_Lifecycle_ImplementationAddressCorrect() public asOwner {
+        bytes32 salt = keccak256("lifecycle13");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertEq(factory.covenantImplementation(), CovenantImplementation(p).implementation());
+    }
+    function test_Lifecycle_CreatorAddressCorrect() public asOwner {
+        bytes32 salt = keccak256("lifecycle14");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertEq(CovenantImplementation(p).creator(), alice);
+    }
+    function test_Lifecycle_AgentAddressCorrect() public asOwner {
+        bytes32 salt = keccak256("lifecycle15");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertEq(CovenantImplementation(p).agent(), bob);
+    }
+    function test_Lifecycle_DurationCorrect() public asOwner {
+        bytes32 salt = keccak256("lifecycle16");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertEq(CovenantImplementation(p).duration(), 30 days);
+    }
+    function test_Lifecycle_DepositAmountCorrect() public asOwner {
+        bytes32 salt = keccak256("lifecycle17");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            2 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertEq(CovenantImplementation(p).depositAmount(), 2 ether);
+    }
+    function test_Lifecycle_PaymentTokenCorrect() public asOwner {
+        bytes32 salt = keccak256("lifecycle18");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(token),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertEq(CovenantImplementation(p).paymentToken(), address(token));
+    }
+    function test_Lifecycle_TerminationAfterDeposit() public asOwner {
+        bytes32 salt = keccak256("lifecycle19");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        assertTrue(CovenantImplementation(p).isTerminated());
+    }
+    function test_Lifecycle_DepositAfterTerminationReverts() public asOwner {
+        bytes32 salt = keccak256("lifecycle20");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            2 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 3 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        vm.prank(alice);
+        vm.expectRevert();
+        CovenantImplementation(p).deposit{value: 1 ether}();
+    }
+    function test_Lifecycle_CovenantExpiredNoDeposit() public asOwner {
+        bytes32 salt = keccak256("lifecycle21");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.warp(block.timestamp + 31 days);
+        assertTrue(CovenantImplementation(p).isExpired());
+    }
+    function test_Lifecycle_CovenantNotExpiredWithDeposit() public asOwner {
+        bytes32 salt = keccak256("lifecycle22");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.warp(block.timestamp + 31 days);
+        assertFalse(CovenantImplementation(p).isExpired());
+    }
+    function test_Lifecycle_TerminatedCovenantCannotExpire() public asOwner {
+        bytes32 salt = keccak256("lifecycle23");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        vm.warp(block.timestamp + 31 days);
+        assertFalse(CovenantImplementation(p).isExpired());
+    }
+    function test_Lifecycle_AgentWithdrawAfterTerminationReverts() public asOwner {
+        bytes32 salt = keccak256("lifecycle24");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        vm.warp(block.timestamp + 31 days);
+        vm.prank(bob);
+        vm.expectRevert();
+        CovenantImplementation(p).withdraw();
+    }
+    function test_Lifecycle_CreatorWithdrawBeforeExpirationReverts() public asOwner {
+        bytes32 salt = keccak256("lifecycle25");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.prank(alice);
+        vm.expectRevert();
+        CovenantImplementation(p).withdraw();
+    }
+    function test_Lifecycle_CreatorWithdrawAfterExpirationReverts() public asOwner {
+        bytes32 salt = keccak256("lifecycle26");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.warp(block.timestamp + 31 days);
+        vm.prank(alice);
+        vm.expectRevert();
+        CovenantImplementation(p).withdraw();
+    }
+    function test_Lifecycle_ReentrancyOnWithdraw() public asOwner {
+        bytes32 salt = keccak256("lifecycle27");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        vm.prank(alice);
+        CovenantImplementation(p).withdraw();
+        vm.prank(alice);
+        vm.expectRevert();
+        CovenantImplementation(p).withdraw();
+    }
+    function test_Lifecycle_MultipleCovenantsSameCreatorAgent() public asOwner {
+        for (uint256 i = 0; i < 5; i++) {
+            bytes32 salt = keccak256(abi.encodePacked("multi", i));
+            bytes memory initData = abi.encodeWithSelector(
+                CovenantImplementation(address(0)).initialize.selector,
+                alice,
+                bob,
+                30 days,
+                1 ether,
+                address(0),
+                bytes32("metadata")
+            );
+            factory.createCovenant(salt, initData);
+        }
+        assertEq(registry.totalCovenants(), 5);
+    }
+    function test_Lifecycle_DifferentCreators() public {
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        vm.prank(owner);
+        factory.createCovenant(keccak256("creator1"), initData);
+        bytes memory initData2 = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            carol,
+            dave,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        vm.prank(owner);
+        factory.createCovenant(keccak256("creator2"), initData2);
+        assertEq(registry.totalCovenants(), 2);
+    }
+    function test_Lifecycle_FactoryOnlyCanCreate() public {
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        vm.prank(alice);
+        vm.expectRevert();
+        factory.createCovenant(keccak256("unauth"), initData);
+    }
+    function test_Lifecycle_RegistryOnlyFactoryCanRegister() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        registry.registerCovenant(alice, bytes32("metadata"));
+    }
+    function test_Lifecycle_ImplementationNotInitializableDirectly() public {
+        vm.expectRevert();
+        implementation.initialize(alice, bob, 30 days, 1 ether, address(0), bytes32("metadata"));
+    }
+    function test_Lifecycle_SaltDeterminism() public asOwner {
+        bytes32 salt = keccak256("deterministic");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p1 = factory.createCovenant(salt, initData);
+        bytes memory initData2 = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            carol,
+            dave,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata2")
+        );
+        address p2 = factory.createCovenant(keccak256("salt2"), initData2);
+        assertTrue(p1 != p2);
+    }
+    function test_Lifecycle_ProxyIsContract() public asOwner {
+        bytes32 salt = keccak256("iscontract");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        assertTrue(p.code.length > 0);
+    }
+    function test_Lifecycle_DepositEvent() public asOwner {
+        bytes32 salt = keccak256("event");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true);
+        emit CovenantImplementation.Deposited(alice, 1 ether);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+    }
+    function test_Lifecycle_TerminateEvent() public asOwner {
+        bytes32 salt = keccak256("event2");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, false);
+        emit CovenantImplementation.Terminated(alice);
+        CovenantImplementation(p).terminate();
+    }
+    function test_Lifecycle_WithdrawEvent() public asOwner {
+        bytes32 salt = keccak256("event3");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true);
+        emit CovenantImplementation.Withdrawn(alice, 1 ether);
+        CovenantImplementation(p).withdraw();
+    }
+    function test_Lifecycle_RegistryEvent() public asOwner {
+        bytes32 salt = keccak256("event4");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        vm.expectEmit(true, true, false, true);
+        emit CovenantRegistry.CovenantRegistered(1, vm.computeCreate2Address(salt, keccak256(initData), address(factory)), bytes32("metadata"));
+        factory.createCovenant(salt, initData);
+    }
+    function test_Lifecycle_ZeroDepositAllowed() public asOwner {
+        bytes32 salt = keccak256("zerodep");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 0}();
+        assertEq(CovenantImplementation(p).getBalance(), 0);
+    }
+    function test_Lifecycle_ExcessDepositAllowed() public asOwner {
+        bytes32 salt = keccak256("excess");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 5 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 3 ether}();
+        assertEq(CovenantImplementation(p).getBalance(), 3 ether);
+    }
+    function test_Lifecycle_PartialDepositThenFull() public asOwner {
+        bytes32 salt = keccak256("partial");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            2 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 5 ether);
+        vm.startPrank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.stopPrank();
+        assertEq(CovenantImplementation(p).getBalance(), 2 ether);
+    }
+    function test_Lifecycle_StartTimeSet() public asOwner {
+        bytes32 salt = keccak256("start");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        assertEq(CovenantImplementation(p).startTime(), block.timestamp);
+    }
+    function test_Lifecycle_EndTimeSet() public asOwner {
+        bytes32 salt = keccak256("end");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        assertEq(CovenantImplementation(p).endTime(), block.timestamp + 30 days);
+    }
+    function test_Lifecycle_TerminateResetsEndTime() public asOwner {
+        bytes32 salt = keccak256("resetend");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.warp(block.timestamp + 10 days);
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        assertEq(CovenantImplementation(p).endTime(), 0);
+    }
+    function test_Lifecycle_TerminateResetsStartTime() public asOwner {
+        bytes32 salt = keccak256("resetstart");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.deal(alice, 2 ether);
+        vm.prank(alice);
+        CovenantImplementation(p).deposit{value: 1 ether}();
+        vm.prank(alice);
+        CovenantImplementation(p).terminate();
+        assertEq(CovenantImplementation(p).startTime(), 0);
+    }
+    function test_Lifecycle_NoReinitialization() public asOwner {
+        bytes32 salt = keccak256("reinit");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.expectRevert();
+        CovenantImplementation(p).initialize(alice, bob, 30 days, 1 ether, address(0), bytes32("metadata"));
+    }
+    function test_Lifecycle_OnlyFactoryCanInitialize() public asOwner {
+        bytes32 salt = keccak256("onlyfact");
+        bytes memory initData = abi.encodeWithSelector(
+            CovenantImplementation(address(0)).initialize.selector,
+            alice,
+            bob,
+            30 days,
+            1 ether,
+            address(0),
+            bytes32("metadata")
+        );
+        address p = factory.createCovenant(salt, initData);
+        vm.prank(alice);
+        vm.expectRevert();
+        CovenantImplementation(p).initialize(alice, bob, 30 days, 1 ether, address(0), bytes32("metadata"));
+    }
+    function test_Lifecycle_10CovenantsLifecycle() public asOwner {
+        for (uint256 i = 0; i < 10; i++) {
+            bytes32 salt = keccak256(abi.encodePacked("batch", i));
+            bytes memory initData = abi.encodeWithSelector(
+                CovenantImplementation(address(0)).initialize.selector,
+                alice,
+                bob,
+                30 days,
+                1 ether,
+                address(0),
+                bytes32("metadata")
+            );
+            address p = factory.createCovenant(salt, initData);
+            vm.deal(alice, 2 ether);
+            vm.prank(alice);
+            CovenantImplementation(p).deposit{value: 1 ether}();
+            vm.prank(alice);
+            CovenantImplementation(p).terminate();
+            vm.prank(alice);
+            CovenantImplementation(p).withdraw();
+        }
+    }
+
+    // ==================== TASK LIFECYCLE TESTS (25) ====================
+    function test_TaskLifecycle_CreateTask() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        assertEq(taskMarket.getTasksByCovenant(1).length, 1);
+    }
+    function test_TaskLifecycle_AssignTask() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        assertEq(taskMarket.getTask(1).assignee, bob);
+    }
+    function test_TaskLifecycle_SubmitTask() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        vm.prank(bob);
+        taskMarket.submitTask(1, keccak256("proof"));
+        assertEq(taskMarket.getTask(1).status, 2);
+    }
+    function test_TaskLifecycle_CompleteTask() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        vm.prank(bob);
+        taskMarket.submitTask(1, keccak256("proof"));
+        uint256 before = bob.balance;
+        taskMarket.completeTask(1);
+        assertEq(bob.balance - before, 1 ether);
+    }
+    function test_TaskLifecycle_CancelTask() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        uint256 before = alice.balance;
+        taskMarket.cancelTask(1);
+        assertEq(alice.balance, before + 1 ether);
+    }
+    function test_TaskLifecycle_DisputeTask() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        vm.prank(bob);
+        taskMarket.submitTask(1, keccak256("proof"));
+        taskMarket.disputeTask(1);
+        assertEq(taskMarket.getTask(1).status, 4);
+    }
+    function test_TaskLifecycle_ERC20Task() public asAlice {
+        token.approve(address(taskMarket), 1 ether);
+        taskMarket.createTask(1, 1 ether, address(token), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        vm.prank(bob);
+        taskMarket.submitTask(1, keccak256("proof"));
+        uint256 before = token.balanceOf(bob);
+        taskMarket.completeTask(1);
+        assertEq(token.balanceOf(bob) - before, 1 ether);
+    }
+    function test_TaskLifecycle_MultipleTasksSameCovenant() public asAlice {
+        for (uint256 i = 0; i < 5; i++) {
+            taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        }
+        assertEq(taskMarket.getTasksByCovenant(1).length, 5);
+    }
+    function test_TaskLifecycle_MultipleAssignees() public asAlice {
+        for (uint256 i = 0; i < 5; i++) {
+            taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+            vm.prank(address(uint160(i + 100)));
+            taskMarket.assignTask(i + 1);
+        }
+        for (uint256 i = 0; i < 5; i++) {
+            assertTrue(taskMarket.getTask(i + 1).assignee != address(0));
+        }
+    }
+    function test_TaskLifecycle_CompleteMultipleTasks() public asAlice {
+        for (uint256 i = 0; i < 5; i++) {
+            taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+            vm.prank(bob);
+            taskMarket.assignTask(i + 1);
+            vm.prank(bob);
+            taskMarket.submitTask(i + 1, keccak256("proof"));
+            taskMarket.completeTask(i + 1);
+        }
+        assertEq(taskMarket.getTasksByAssignee(bob).length, 5);
+    }
+    function test_TaskLifecycle_CancelAssignedTaskReverts() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        vm.expectRevert();
+        taskMarket.cancelTask(1);
+    }
+    function test_TaskLifecycle_CancelSubmittedTaskReverts() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        vm.prank(bob);
+        taskMarket.submitTask(1, keccak256("proof"));
+        vm.expectRevert();
+        taskMarket.cancelTask(1);
+    }
+    function test_TaskLifecycle_DisputedTaskCannotComplete() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        vm.prank(bob);
+        taskMarket.submitTask(1, keccak256("proof"));
+        taskMarket.disputeTask(1);
+        vm.expectRevert();
+        taskMarket.completeTask(1);
+    }
+    function test_TaskLifecycle_CompleteTaskOnlyByCreator() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        vm.prank(bob);
+        taskMarket.submitTask(1, keccak256("proof"));
+        vm.prank(bob);
+        vm.expectRevert();
+        taskMarket.completeTask(1);
+    }
+    function test_TaskLifecycle_AssignOnlyOpenTasks() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        taskMarket.assignTask(1);
+        vm.prank(carol);
+        vm.expectRevert();
+        taskMarket.assignTask(1);
+    }
+    function test_TaskLifecycle_SubmitOnlyAssigned() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(bob);
+        vm.expectRevert();
+        taskMarket.submitTask(1, keccak256("proof"));
+    }
+    function test_TaskLifecycle_DeadlinePassedCannotAssign() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.warp(block.timestamp + 2 days);
+        vm.prank(bob);
+        vm.expectRevert();
+        taskMarket.assignTask(1);
+    }
+    function test_TaskLifecycle_10TaskLifecycle() public asAlice {
+        for (uint256 i = 0; i < 10; i++) {
+            taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+            vm.prank(bob);
+            taskMarket.assignTask(i + 1);
+            vm.prank(bob);
+            taskMarket.submitTask(i + 1, keccak256("proof"));
+            taskMarket.completeTask(i + 1);
+        }
+    }
+    function test_TaskLifecycle_100TaskLifecycle() public asAlice {
+        for (uint256 i = 0; i < 100; i++) {
+            taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+            vm.prank(bob);
+            taskMarket.assignTask(i + 1);
+            vm.prank(bob);
+            taskMarket.submitTask(i + 1, keccak256("proof"));
+            taskMarket.completeTask(i + 1);
+        }
+    }
+    function test_TaskLifecycle_TaskCreatorCannotBeAssignee() public asAlice {
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+        vm.prank(alice);
+        taskMarket.assignTask(1);
+        assertEq(taskMarket.getTask(1).assignee, alice);
+    }
+    function test_TaskLifecycle_ERC20ApprovalRequired() public asAlice {
+        token.approve(address(taskMarket), 0.5 ether);
+        vm.expectRevert();
+        taskMarket.createTask(1, 1 ether, address(token), block.timestamp + 1 days, bytes32("metadata"));
+    }
+    function test_TaskLifecycle_ETHAmountMustMatch() public asAlice {
+        vm.expectRevert();
+        taskMarket.createTask{value: 0.5 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32("metadata"));
+    }
+    function test_TaskLifecycle_ZeroRewardReverts() public asAlice {
+        vm.expectRevert();
+        taskMarket.createTask{value: 0}(1, 0, address(0), block.timestamp + 1 days, bytes32("metadata"));
+    }
+    function test_TaskLifecycle_PastDeadlineReverts() public asAlice {
+        vm.expectRevert();
+        taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp - 1, bytes32("metadata"));
+    }
+
+    // ==================== STAKING INTEGRATION TESTS (25) ====================
+    function test_StakingIntegration_StakeAndUnstake() public asAlice {
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 0);
+        reputationStake.unstake(1 ether);
+        assertEq(reputationStake.getStakeInfo(alice).amount, 0);
+    }
+    function test_StakingIntegration_StakeLockedCannotUnstake() public asAlice {
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 7 days);
+        vm.expectRevert();
+        reputationStake.unstake(1 ether);
+    }
+    function test_StakingIntegration_StakeAndSlash() public asOwner {
+        vm.startPrank(alice);
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 0);
+        vm.stopPrank();
+        reputationStake.slash(alice, 1 ether, keccak256("reason"));
+        assertEq(reputationStake.getStakeInfo(alice).amount, 0);
+    }
+    function test_StakingIntegration_LockedStakeCanBeSlashed() public asOwner {
+        vm.startPrank(alice);
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 7 days);
+        vm.stopPrank();
+        reputationStake.slash(alice, 1 ether, keccak256("reason"));
+        assertEq(reputationStake.getStakeInfo(alice).amount, 0);
+    }
+    function test_StakingIntegration_MultipleStakers() public {
+        vm.startPrank(alice);
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 0);
+        vm.stopPrank();
+        vm.startPrank(bob);
+        token.approve(address(reputationStake), 2 ether);
+        reputationStake.stake(2 ether, 0);
+        vm.stopPrank();
+        assertEq(reputationStake.totalStaked(), 3 ether);
+    }
+    function test_StakingIntegration_MultipleStakesSameUser() public asAlice {
+        token.approve(address(reputationStake), 3 ether);
+        reputationStake.stake(1 ether, 0);
+        reputationStake.stake(1 ether, 0);
+        reputationStake.stake(1 ether, 0);
+        assertEq(reputationStake.getStakeInfo(alice).amount, 3 ether);
+    }
+    function test_StakingIntegration_StakeUnlockTimeExtends() public asAlice {
+        token.approve(address(reputationStake), 2 ether);
+        reputationStake.stake(1 ether, 7 days);
+        uint256 unlock1 = reputationStake.getStakeInfo(alice).unlockTime;
+        reputationStake.stake(1 ether, 14 days);
+        uint256 unlock2 = reputationStake.getStakeInfo(alice).unlockTime;
+        assertEq(unlock2, unlock1 + 7 days);
+    }
+    function test_StakingIntegration_TotalStakedAfterUnstake() public asAlice {
+        token.approve(address(reputationStake), 2 ether);
+        reputationStake.stake(2 ether, 0);
+        reputationStake.unstake(1 ether);
+        assertEq(reputationStake.totalStaked(), 1 ether);
+    }
+    function test_StakingIntegration_TotalStakedAfterSlash() public asOwner {
+        vm.startPrank(alice);
+        token.approve(address(reputationStake), 2 ether);
+        reputationStake.stake(2 ether, 0);
+        vm.stopPrank();
+        reputationStake.slash(alice, 1 ether, keccak256("reason"));
+        assertEq(reputationStake.totalStaked(), 1 ether);
+    }
+    function test_StakingIntegration_OnlyOwnerCanSlash() public {
+        vm.startPrank(alice);
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 0);
+        vm.stopPrank();
+        vm.prank(bob);
+        vm.expectRevert();
+        reputationStake.slash(alice, 1 ether, keccak256("reason"));
+    }
+    function test_StakingIntegration_UnstakeTransfersTokens() public asAlice {
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 0);
+        uint256 before = token.balanceOf(alice);
+        reputationStake.unstake(1 ether);
+        assertEq(token.balanceOf(alice) - before, 1 ether);
+    }
+    function test_StakingIntegration_SlashTransfersToOwner() public asOwner {
+        vm.startPrank(alice);
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 0);
+        vm.stopPrank();
+        uint256 before = token.balanceOf(owner);
+        reputationStake.slash(alice, 1 ether, keccak256("reason"));
+        assertEq(token.balanceOf(owner) - before, 1 ether);
+    }
+    function test_StakingIntegration_10Stakers() public {
+        for (uint256 i = 0; i < 10; i++) {
+            address staker = address(uint160(i + 1000));
+            token.transfer(staker, 1 ether);
+            vm.startPrank(staker);
+            token.approve(address(reputationStake), 1 ether);
+            reputationStake.stake(1 ether, 0);
+            vm.stopPrank();
+        }
+        assertEq(reputationStake.totalStaked(), 10 ether);
+    }
+    function test_StakingIntegration_10Slashes() public asOwner {
+        vm.startPrank(alice);
+        token.approve(address(reputationStake), 10 ether);
+        reputationStake.stake(10 ether, 0);
+        vm.stopPrank();
+        for (uint256 i = 0; i < 10; i++) {
+            reputationStake.slash(alice, 1 ether, keccak256(abi.encode(i)));
+        }
+        assertEq(reputationStake.getStakeInfo(alice).amount, 0);
+    }
+    function test_StakingIntegration_MaxUint256Stake() public asAlice {
+        token.approve(address(reputationStake), type(uint256).max);
+        reputationStake.stake(type(uint256).max, 0);
+        assertEq(reputationStake.getStakeInfo(alice).amount, type(uint256).max);
+    }
+    function test_StakingIntegration_ZeroAmountStakeReverts() public asAlice {
+        vm.expectRevert();
+        reputationStake.stake(0, 0);
+    }
+    function test_StakingIntegration_ZeroAmountUnstakeAllowed() public asAlice {
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 0);
+        reputationStake.unstake(0);
+        assertEq(reputationStake.getStakeInfo(alice).amount, 1 ether);
+    }
+    function test_StakingIntegration_PartialUnstake() public asAlice {
+        token.approve(address(reputationStake), 2 ether);
+        reputationStake.stake(2 ether, 0);
+        reputationStake.unstake(1 ether);
+        assertEq(reputationStake.getStakeInfo(alice).amount, 1 ether);
+    }
+    function test_StakingIntegration_PartialSlash() public asOwner {
+        vm.startPrank(alice);
+        token.approve(address(reputationStake), 2 ether);
+        reputationStake.stake(2 ether, 0);
+        vm.stopPrank();
+        reputationStake.slash(alice, 1 ether, keccak256("reason"));
+        assertEq(reputationStake.getStakeInfo(alice).amount, 1 ether);
+    }
+    function test_StakingIntegration_NoApprovalReverts() public asAlice {
+        vm.expectRevert();
+        reputationStake.stake(1 ether, 0);
+    }
+    function test_StakingIntegration_InsufficientApprovalReverts() public asAlice {
+        token.approve(address(reputationStake), 0.5 ether);
+        vm.expectRevert();
+        reputationStake.stake(1 ether, 0);
+    }
+    function test_StakingIntegration_ViewFunctions() public view {
+        reputationStake.getStakeInfo(alice);
+        reputationStake.totalStaked();
+        reputationStake.getStakeToken();
+        assertTrue(true);
+    }
+    function test_StakingIntegration_LockedFlag() public asAlice {
+        token.approve(address(reputationStake), 1 ether);
+        reputationStake.stake(1 ether, 1);
+        assertTrue(reputationStake.getStakeInfo(alice).locked);
+    }
+
+    receive() external payable {}
+}

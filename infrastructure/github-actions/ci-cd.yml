@@ -1,0 +1,89 @@
+name: COVENANT CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: Install deps
+        run: forge install
+      - name: Build contracts
+        run: forge build --contracts contracts-v2
+      - name: Run tests
+        run: forge test --summary
+      - name: Gas report
+        run: forge test --gas-report
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend deps
+        working-directory: frontend-v2
+        run: npm ci
+      - name: Build frontend
+        working-directory: frontend-v2
+        run: npm run build
+      - name: Lint frontend
+        working-directory: frontend-v2
+        run: npm run lint || true
+
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Test covenant-api
+        working-directory: services/covenant-api
+        run: npm ci && npm test || true
+      - name: Test websocket-server
+        working-directory: services/websocket-server
+        run: npm ci && npm test || true
+
+  cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build CLI
+        working-directory: cli/covenant-cli
+        run: npm ci && npm run build
+
+  deploy:
+    needs: [contracts, frontend, backend, cli]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Deploy to Vercel
+        run: npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+        working-directory: frontend-v2

@@ -1,0 +1,156 @@
+type Covenant @entity {
+  id: ID!
+  address: Bytes!
+  creator: Bytes!
+  name: String!
+  description: String!
+  termsHash: Bytes!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  status: CovenantStatus!
+  chainId: BigInt!
+  participants: [CovenantParticipant!]! @derivedFrom(field: "covenant")
+  tasks: [Task!]! @derivedFrom(field: "covenant")
+  metadataURI: String
+  version: BigInt!
+  implementation: Bytes!
+  totalValueLocked: BigInt!
+  transactionCount: BigInt!
+}
+
+type CovenantParticipant @entity {
+  id: ID!
+  covenant: Covenant!
+  user: User!
+  role: ParticipantRole!
+  joinedAt: BigInt!
+  stakeAmount: BigInt!
+  active: Boolean!
+}
+
+type User @entity {
+  id: ID!
+  address: Bytes!
+  covenants: [CovenantParticipant!]! @derivedFrom(field: "user")
+  tasksCreated: [Task!]! @derivedFrom(field: "creator")
+  tasksAssigned: [Task!]! @derivedFrom(field: "assignee")
+  reputation: ReputationScore @derivedFrom(field: "user")
+  createdAt: BigInt!
+  totalCovenants: BigInt!
+  totalTasks: BigInt!
+}
+
+type ReputationScore @entity {
+  id: ID!
+  user: User!
+  score: BigInt!
+  tier: String!
+  updatedAt: BigInt!
+  decayFactor: BigInt!
+  boostMultiplier: BigInt!
+}
+
+type Task @entity {
+  id: ID!
+  covenant: Covenant!
+  taskId: BigInt!
+  creator: User!
+  assignee: User
+  title: String!
+  description: String!
+  reward: BigInt!
+  deadline: BigInt!
+  status: TaskStatus!
+  createdAt: BigInt!
+  completedAt: BigInt
+  escrowAddress: Bytes
+  dispute: Dispute @derivedFrom(field: "task")
+  reviews: [TaskReview!]! @derivedFrom(field: "task")
+  metadataURI: String
+}
+
+type TaskReview @entity {
+  id: ID!
+  task: Task!
+  reviewer: Bytes!
+  rating: BigInt!
+  comment: String!
+  createdAt: BigInt!
+}
+
+type Dispute @entity {
+  id: ID!
+  task: Task!
+  disputeId: BigInt!
+  initiator: Bytes!
+  respondent: Bytes!
+  reason: String!
+  status: DisputeStatus!
+  createdAt: BigInt!
+  resolvedAt: BigInt
+  resolution: DisputeResolution
+  evidenceCount: BigInt!
+  votesForInitiator: BigInt!
+  votesForRespondent: BigInt!
+}
+
+type DisputeResolution @entity {
+  id: ID!
+  dispute: Dispute!
+  resolver: Bytes!
+  outcome: String!
+  penaltyAmount: BigInt!
+  executedAt: BigInt!
+}
+
+enum CovenantStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  DISSOLVED
+}
+
+enum ParticipantRole {
+  OWNER
+  ADMIN
+  MEMBER
+  OBSERVER
+}
+
+enum TaskStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum DisputeStatus {
+  OPEN
+  EVIDENCE
+  VOTING
+  APPEAL
+  RESOLVED
+}
+
+type CovenantFactory @entity {
+  id: ID!
+  address: Bytes!
+  implementation: Bytes!
+  totalCovenants: BigInt!
+  version: BigInt!
+  paused: Boolean!
+}
+
+type CovenantEvent @entity(immutable: true) {
+  id: ID!
+  covenant: Covenant!
+  eventType: String!
+  emitter: Bytes!
+  data: String!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}

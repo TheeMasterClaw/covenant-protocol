@@ -1,0 +1,118 @@
+type Task @entity {
+  id: ID!
+  taskId: BigInt!
+  covenant: Bytes!
+  creator: Bytes!
+  assignee: Bytes
+  title: String!
+  description: String!
+  reward: BigInt!
+  token: Bytes
+  deadline: BigInt!
+  status: TaskStatus!
+  category: String
+  priority: BigInt!
+  createdAt: BigInt!
+  assignedAt: BigInt
+  submittedAt: BigInt
+  completedAt: BigInt
+  cancelledAt: BigInt
+  escrowAddress: Bytes
+  escrowAmount: BigInt!
+  disputeId: BigInt
+  reviewCount: BigInt!
+  averageRating: BigInt!
+  metadataURI: String
+  skillsRequired: [String!]!
+  chainId: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type TaskBid @entity {
+  id: ID!
+  task: Task!
+  bidder: Bytes!
+  amount: BigInt!
+  proposal: String!
+  createdAt: BigInt!
+  accepted: Boolean!
+  blockNumber: BigInt!
+}
+
+type TaskAssignment @entity {
+  id: ID!
+  task: Task!
+  assignee: Bytes!
+  assignedBy: Bytes!
+  assignedAt: BigInt!
+  escrowAmount: BigInt!
+  blockNumber: BigInt!
+}
+
+type TaskSubmission @entity {
+  id: ID!
+  task: Task!
+  submitter: Bytes!
+  proofURI: String!
+  comment: String!
+  submittedAt: BigInt!
+  accepted: Boolean
+  blockNumber: BigInt!
+}
+
+type TaskReview @entity {
+  id: ID!
+  task: Task!
+  reviewer: Bytes!
+  reviewee: Bytes!
+  rating: BigInt!
+  comment: String!
+  createdAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type TaskEscrow @entity {
+  id: ID!
+  task: Task!
+  depositor: Bytes!
+  amount: BigInt!
+  released: Boolean!
+  refunded: Boolean!
+  createdAt: BigInt!
+  releasedAt: BigInt
+  blockNumber: BigInt!
+}
+
+type TaskMarket @entity {
+  id: ID!
+  address: Bytes!
+  totalTasks: BigInt!
+  totalValueLocked: BigInt!
+  totalCompleted: BigInt!
+  totalDisputed: BigInt!
+  activeTasks: BigInt!
+  platformFeeBps: BigInt!
+  paused: Boolean!
+}
+
+type TaskEvent @entity(immutable: true) {
+  id: ID!
+  task: Task!
+  eventType: String!
+  emitter: Bytes!
+  data: String!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+enum TaskStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
