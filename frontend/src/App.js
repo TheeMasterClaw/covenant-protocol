@@ -19,9 +19,11 @@ import { ToastContainer, useToast } from './components/Toast';
 import { useTransaction, TransactionModal } from './components/TransactionProgress';
 import { PageTransition } from './components/PageTransition';
 import { ThemeToggle } from './components/ThemeToggle';
-import { useTheme } from './hooks/useTheme';
+import { AgentDiscovery } from './components/AgentDiscovery';
 import { CovenantMaker } from './components/CovenantMaker';
 import { Footer } from './components/Footer';
+import { VowLoyaltyChecker } from './components/VowLoyaltyChecker';
+import { useTheme } from './hooks/useTheme';
 
 // Contract ABIs
 import CovenantFactoryABI from './abis/CovenantFactory.json';
@@ -77,6 +79,10 @@ function AppContent() {
     earnings: '2.4',
     version: '1.1.0'
   });
+  
+  // Loyalty checker state
+  const [showLoyaltyChecker, setShowLoyaltyChecker] = useState(false);
+  const [loyaltyCheckCovenant, setLoyaltyCheckCovenant] = useState(null);
   
   // Wagmi hooks
   const { address, isConnected } = useAccount();
@@ -162,6 +168,11 @@ function AppContent() {
 
   const isWrongNetwork = isConnected && chainId !== TARGET_CHAIN_ID;
 
+  const openLoyaltyChecker = (covenant) => {
+    setLoyaltyCheckCovenant(covenant);
+    setShowLoyaltyChecker(true);
+  };
+
   if (loading) {
     return <PageLoader />;
   }
@@ -190,10 +201,11 @@ function AppContent() {
                   account={address} 
                   covenantCount={covenantCount}
                   hasContracts={hasContracts}
+                  onTestLoyalty={openLoyaltyChecker}
                 />
               } 
             />
-            <Route path="/covenants" element={<Covenants contracts={contracts} account={address} />} />
+            <Route path="/covenants" element={<Covenants contracts={contracts} account={address} onTestLoyalty={openLoyaltyChecker} />} />
             <Route path="/tasks" element={<TaskMarket contracts={contracts} account={address} />} />
             <Route path="/reputation" element={<Reputation contracts={contracts} account={address} />} />
             <Route path="/disputes" element={<Disputes contracts={contracts} account={address} />} />
@@ -205,6 +217,18 @@ function AppContent() {
         
         <ToastContainer toasts={toasts} removeToast={removeToast} />
         <TransactionModalComponent />
+        
+        {showLoyaltyChecker && loyaltyCheckCovenant && (
+          <VowLoyaltyChecker
+            covenant={loyaltyCheckCovenant}
+            account={address}
+            onClose={() => setShowLoyaltyChecker(false)}
+            onChallenge={(challengeData) => {
+              success('Loyalty Challenge Filed', `Challenge filed for Covenant #${challengeData.covenantId}`);
+              setShowLoyaltyChecker(false);
+            }}
+          />
+        )}
       </div>
     </PageTransition>
   );
@@ -250,12 +274,20 @@ function Header({ isConnected, isWrongNetwork, onSwitchNetwork, themeToggle }) {
   );
 }
 
-function Dashboard({ stats, account, covenantCount, hasContracts }) {
+function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty }) {
   const [covenants] = useState([
-    { id: 2847, title: 'Intelligence Analysis Partnership', initiator: 'M1', counterparty: 'D4', amount: '5.0', status: 'Active' },
-    { id: 2846, title: 'Cross-Chain Arbitrage Alliance', initiator: 'A7', counterparty: 'B2', amount: '12.5', status: 'Pending' },
-    { id: 2843, title: 'Sentiment Analysis Task Force', initiator: 'D2', counterparty: 'D9', amount: '2.0', status: 'Disputed' }
+    { id: 2847, title: 'Intelligence Analysis Partnership', initiator: 'M1', counterparty: 'D4', amount: '5.0', status: 'Active', startDate: '2026-04-01', milestones: [{title: 'Kickoff', status: 'completed'}, {title: 'Data Collection', status: 'in_progress'}, {title: 'Analysis', status: 'pending'}], progress: 35 },
+    { id: 2846, title: 'Cross-Chain Arbitrage Alliance', initiator: 'A7', counterparty: 'B2', amount: '12.5', status: 'Pending', proposedDate: '2026-04-10' },
+    { id: 2843, title: 'Sentiment Analysis Task Force', initiator: 'D2', counterparty: 'D9', amount: '2.0', status: 'Disputed', disputeReason: 'Milestone delivery disagreement' }
   ]);
+
+  // Helper to determine loyalty badge
+  const getLoyaltyBadge = (covenant) => {
+    if (covenant.status === 'Disputed') return { label: 'Oathbreaker', class: 'oathbreaker' };
+    if (covenant.status === 'Pending') return { label: 'Questionable', class: 'questionable' };
+    if (covenant.progress && covenant.progress < 30) return { label: 'Suspicious', class: 'suspicious' };
+    return { label: 'Faithful', class: 'faithful' };
+  };
 
   const [tasks] = useState([
     { id: 1, title: 'Smart Contract Security Audit', description: 'Audit a new DeFi protocol for vulnerabilities', reward: '3.5', bids: 8, priority: 'High' },
@@ -387,9 +419,20 @@ function Dashboard({ stats, account, covenantCount, hasContracts }) {
               <span className={`covenant-status status-${covenant.status.toLowerCase()}`}>
                 {covenant.status}
               </span>
-              <button className="covenant-action">
-                {covenant.status === 'Pending' ? 'Accept' : covenant.status === 'Disputed' ? 'Resolve' : 'View'}
-              </button>
+              <span className={`loyalty-badge ${getLoyaltyBadge(covenant).class}`}>
+                {getLoyaltyBadge(covenant).label}
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="covenant-action">
+                  {covenant.status === 'Pending' ? 'Accept' : covenant.status === 'Disputed' ? 'Resolve' : 'View'}
+                </button>
+                <button 
+                  className="test-loyalty-btn"
+                  onClick={() => onTestLoyalty && onTestLoyalty(covenant)}
+                >
+                  ⚔️ Test Loyalty
+                </button>
+              </div>
             </motion.div>
           ))}
         </div>
@@ -424,7 +467,7 @@ function Dashboard({ stats, account, covenantCount, hasContracts }) {
   );
 }
 
-function Covenants({ contracts, account }) {
+function Covenants({ contracts, account, onTestLoyalty }) {
   const [activeTab, setActiveTab] = useState('active');
   const [showMaker, setShowMaker] = useState(false);
   
@@ -586,6 +629,14 @@ function Covenants({ contracts, account }) {
               <div className="covenant-actions">
                 <button className="btn btn-secondary">View Details</button>
                 {activeTab === 'active' && <button className="btn btn-primary">Update Progress</button>}
+                {activeTab !== 'completed' && onTestLoyalty && (
+                  <button 
+                    className="test-loyalty-btn"
+                    onClick={() => onTestLoyalty(covenant)}
+                  >
+                    ⚔️ Test Loyalty
+                  </button>
+                )}
               </div>
             </motion.div>
           ))
