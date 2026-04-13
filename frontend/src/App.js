@@ -4,34 +4,72 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ethers } from 'ethers';
 import './App.css';
 
-// New Components
-import { ErrorBoundary, WalletError, EmptyState } from './components/ErrorBoundary';
-import { LoadingCard, PageLoader } from './components/LoadingSkeleton';
+// RainbowKit + Wagmi
+import '@rainbow-me/rainbowkit/styles.css';
+import { ConnectButton, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { WagmiProvider } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { config } from './wagmi';
+
+// Components
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { PageLoader } from './components/LoadingSkeleton';
 import { ToastContainer, useToast } from './components/Toast';
 import { useTransaction, TransactionModal } from './components/TransactionProgress';
-import { PageTransition, FadeIn } from './components/PageTransition';
+import { PageTransition } from './components/PageTransition';
 import { ThemeToggle } from './components/ThemeToggle';
 import { useTheme } from './hooks/useTheme';
-import { AgentDiscovery } from './components/AgentDiscovery';
 import { CovenantMaker } from './components/CovenantMaker';
+import { Footer } from './components/Footer';
 
-// Contract ABIs (simplified)
+// Contract ABIs
 import CovenantFactoryABI from './abis/CovenantFactory.json';
 import TaskMarketABI from './abis/TaskMarket.json';
 import ReputationStakeABI from './abis/ReputationStake.json';
 
-// Contract addresses (replace with deployed addresses)
+// Target chain (X Layer Testnet for demo)
+const TARGET_CHAIN_ID = 195;
+
+// Contract addresses - TODO: replace with deployed addresses
 const CONTRACTS = {
   factory: process.env.REACT_APP_FACTORY_ADDRESS,
   taskMarket: process.env.REACT_APP_TASK_MARKET_ADDRESS,
   reputationStake: process.env.REACT_APP_REPUTATION_STAKE_ADDRESS
 };
 
+function MobileNav() {
+  const location = useLocation();
+  
+  const navItems = [
+    { path: '/', label: 'Home', icon: '◈' },
+    { path: '/covenants', label: 'Covenants', icon: '📜' },
+    { path: '/tasks', label: 'Tasks', icon: '⚡' },
+    { path: '/disputes', label: 'Disputes', icon: '⚖️' },
+    { path: '/reputation', label: 'Rep', icon: '★' },
+  ];
+  
+  return (
+    <nav className="mobile-nav">
+      {navItems.map(item => (
+        <Link
+          key={item.path}
+          to={item.path}
+          className={`mobile-nav-item ${location.pathname === item.path ? 'active' : ''}`}
+        >
+          <span className="mobile-nav-icon">{item.icon}</span>
+          <span>{item.label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 function AppContent() {
-  const [account, setAccount] = useState(null);
   const [provider, setProvider] = useState(null);
   const [contracts, setContracts] = useState({});
   const [loading, setLoading] = useState(true);
+  const [covenantCount, setCovenantCount] = useState(null);
   const [stats, setStats] = useState({
     totalStaked: '45.2K',
     reputation: 847,
@@ -40,81 +78,89 @@ function AppContent() {
     version: '1.1.0'
   });
   
-  // New hooks
+  // Wagmi hooks
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+  
+  // Legacy hooks
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { toasts, removeToast, success, error, info } = useToast();
-  const { TransactionModal: TransactionModalComponent, startTransaction, updateStatus } = useTransaction();
+  const { TransactionModal: TransactionModalComponent } = useTransaction();
+
+  // Check if contracts are configured
+  const hasContracts = CONTRACTS.factory || CONTRACTS.taskMarket || CONTRACTS.reputationStake;
 
   useEffect(() => {
-    checkWalletConnection();
-    // Simulate loading for demo
-    setTimeout(() => setLoading(false), 1000);
+    const timer = setTimeout(() => setLoading(false), 800);
+    return () => clearTimeout(timer);
   }, []);
 
-  const checkWalletConnection = async () => {
-    if (window.ethereum) {
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await provider.listAccounts();
-        if (accounts.length > 0) {
-          // Fix: accounts[0] is an object with address property in ethers v6
-          const address = typeof accounts[0] === 'string' ? accounts[0] : accounts[0].address;
-          setAccount(address);
-          setProvider(provider);
-          initializeContracts(provider);
-          info('Wallet Connected', 'Successfully connected to your wallet');
+  // Initialize ethers provider and contracts when wallet connects
+  useEffect(() => {
+    if (isConnected && window.ethereum) {
+      const init = async () => {
+        try {
+          const ethersProvider = new ethers.BrowserProvider(window.ethereum);
+          setProvider(ethersProvider);
+          
+          if (hasContracts) {
+            initializeContracts(ethersProvider);
+          }
+          
+          const network = await ethersProvider.getNetwork();
+          if (Number(network.chainId) !== TARGET_CHAIN_ID) {
+            info('Network Notice', 'Please switch to X Layer Testnet for full functionality');
+          }
+        } catch (err) {
+          console.error('Provider init error:', err);
         }
-      } catch (err) {
-        console.error('Wallet connection error:', err);
-        error('Connection Error', err.message);
-      }
-    }
-  };
-
-  const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        startTransaction();
-        updateStatus('pending');
-        
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send('eth_requestAccounts', []);
-        const signer = await provider.getSigner();
-        const address = await signer.getAddress();
-        
-        setAccount(address);
-        setProvider(provider);
-        initializeContracts(provider);
-        
-        updateStatus('confirmed');
-        const displayAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown';
-        success('Wallet Connected', `Connected: ${displayAddress}`);
-        
-        // Redirect to Dashboard after successful connection
-        navigate('/');
-      } catch (err) {
-        updateStatus('failed');
-        error('Connection Failed', err.message);
-      }
+      };
+      init();
     } else {
-      error('No Wallet', 'Please install MetaMask or another Web3 wallet');
+      setProvider(null);
+      setContracts({});
+      setCovenantCount(null);
     }
-  };
+  }, [isConnected, hasContracts, info]);
+
+  // Fetch real covenant count when factory contract is available
+  useEffect(() => {
+    if (contracts.factory) {
+      const fetchCount = async () => {
+        try {
+          const count = await contracts.factory.getCovenantCount();
+          setCovenantCount(Number(count));
+        } catch (err) {
+          console.error('Failed to fetch covenant count:', err);
+        }
+      };
+      fetchCount();
+    }
+  }, [contracts.factory]);
 
   const initializeContracts = (provider) => {
-    const contracts = {};
+    const newContracts = {};
     if (CONTRACTS.factory) {
-      contracts.factory = new ethers.Contract(CONTRACTS.factory, CovenantFactoryABI, provider);
+      newContracts.factory = new ethers.Contract(CONTRACTS.factory, CovenantFactoryABI, provider);
     }
     if (CONTRACTS.taskMarket) {
-      contracts.taskMarket = new ethers.Contract(CONTRACTS.taskMarket, TaskMarketABI, provider);
+      newContracts.taskMarket = new ethers.Contract(CONTRACTS.taskMarket, TaskMarketABI, provider);
     }
     if (CONTRACTS.reputationStake) {
-      contracts.reputationStake = new ethers.Contract(CONTRACTS.reputationStake, ReputationStakeABI, provider);
+      newContracts.reputationStake = new ethers.Contract(CONTRACTS.reputationStake, ReputationStakeABI, provider);
     }
-    setContracts(contracts);
+    setContracts(newContracts);
   };
+
+  const handleSwitchNetwork = () => {
+    if (switchChain) {
+      switchChain({ chainId: TARGET_CHAIN_ID });
+    }
+  };
+
+  const isWrongNetwork = isConnected && chainId !== TARGET_CHAIN_ID;
 
   if (loading) {
     return <PageLoader />;
@@ -128,22 +174,35 @@ function AppContent() {
         <div className="bg-glow glow-2"></div>
         
         <Header 
-          account={account} 
-          connectWallet={connectWallet}
+          isConnected={isConnected}
+          isWrongNetwork={isWrongNetwork}
+          onSwitchNetwork={handleSwitchNetwork}
           themeToggle={<ThemeToggle theme={theme} toggleTheme={toggleTheme} />}
         />
         
         <main className="main">
           <Routes>
-            <Route path="/" element={<Dashboard stats={stats} account={account} loading={loading} />} />
-            <Route path="/covenants" element={<Covenants contracts={contracts} account={account} />} />
-            <Route path="/tasks" element={<TaskMarket contracts={contracts} account={account} />} />
-            <Route path="/reputation" element={<Reputation contracts={contracts} account={account} />} />
-            <Route path="/disputes" element={<Disputes contracts={contracts} account={account} />} />
+            <Route 
+              path="/" 
+              element={
+                <Dashboard 
+                  stats={stats} 
+                  account={address} 
+                  covenantCount={covenantCount}
+                  hasContracts={hasContracts}
+                />
+              } 
+            />
+            <Route path="/covenants" element={<Covenants contracts={contracts} account={address} />} />
+            <Route path="/tasks" element={<TaskMarket contracts={contracts} account={address} />} />
+            <Route path="/reputation" element={<Reputation contracts={contracts} account={address} />} />
+            <Route path="/disputes" element={<Disputes contracts={contracts} account={address} />} />
           </Routes>
         </main>
         
-        {/* New UI Components */}
+        <Footer />
+        <MobileNav />
+        
         <ToastContainer toasts={toasts} removeToast={removeToast} />
         <TransactionModalComponent />
       </div>
@@ -151,7 +210,7 @@ function AppContent() {
   );
 }
 
-function Header({ account, connectWallet, themeToggle }) {
+function Header({ isConnected, isWrongNetwork, onSwitchNetwork, themeToggle }) {
   const location = useLocation();
   
   return (
@@ -171,22 +230,34 @@ function Header({ account, connectWallet, themeToggle }) {
       
       <div className="header-actions">
         {themeToggle}
-        <button className="wallet-btn" onClick={connectWallet}>
-          {account && typeof account === 'string' ? `${account.slice(0, 6)}...${account.slice(-4)}` : 'Connect Wallet'}
-        </button>
+        {isWrongNetwork ? (
+          <button 
+            className="wallet-btn" 
+            onClick={onSwitchNetwork}
+            style={{ background: 'linear-gradient(135deg, #ff4757 0%, #ff6348 100%)' }}
+          >
+            Switch Network
+          </button>
+        ) : (
+          <ConnectButton 
+            showBalance={false}
+            chainStatus="icon"
+            accountStatus="address"
+          />
+        )}
       </div>
     </header>
   );
 }
 
-function Dashboard({ stats, account }) {
-  const [covenants, setCovenants] = useState([
+function Dashboard({ stats, account, covenantCount, hasContracts }) {
+  const [covenants] = useState([
     { id: 2847, title: 'Intelligence Analysis Partnership', initiator: 'M1', counterparty: 'D4', amount: '5.0', status: 'Active' },
     { id: 2846, title: 'Cross-Chain Arbitrage Alliance', initiator: 'A7', counterparty: 'B2', amount: '12.5', status: 'Pending' },
     { id: 2843, title: 'Sentiment Analysis Task Force', initiator: 'D2', counterparty: 'D9', amount: '2.0', status: 'Disputed' }
   ]);
 
-  const [tasks, setTasks] = useState([
+  const [tasks] = useState([
     { id: 1, title: 'Smart Contract Security Audit', description: 'Audit a new DeFi protocol for vulnerabilities', reward: '3.5', bids: 8, priority: 'High' },
     { id: 2, title: 'On-Chain Data Analysis', description: 'Analyze X Layer transaction patterns', reward: '1.2', bids: 12, priority: 'Medium' },
     { id: 3, title: 'Documentation Translation', description: 'Translate protocol docs to CN, JP, KR', reward: '0.5', bids: 5, priority: 'Low' }
@@ -208,22 +279,48 @@ function Dashboard({ stats, account }) {
         </p>
         <div className="hero-stats">
           <div className="stat">
-            <div className="stat-value">2.5K+</div>
+            <div className="stat-value">
+              {covenantCount !== null ? covenantCount.toLocaleString() : '2.5K+'}
+            </div>
             <div className="stat-label">Active Covenants</div>
           </div>
           <div className="stat">
             <div className="stat-value">$1.2M</div>
-            <div class="stat-label">Value Locked</div>
+            <div className="stat-label">Value Locked</div>
           </div>
           <div className="stat">
             <div className="stat-value">847</div>
-            <div class="stat-label">AI Agents</div>
+            <div className="stat-label">AI Agents</div>
           </div>
           <div className="stat">
             <div className="stat-value">99.9%</div>
-            <div class="stat-label">Uptime</div>
+            <div className="stat-label">Uptime</div>
           </div>
         </div>
+        
+        {!hasContracts && (
+          <motion.div 
+            className="demo-banner"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            style={{
+              marginTop: '32px',
+              padding: '16px 24px',
+              background: 'rgba(255, 170, 0, 0.1)',
+              border: '1px solid rgba(255, 170, 0, 0.3)',
+              borderRadius: '12px',
+              color: '#ffaa00',
+              fontSize: '14px',
+              maxWidth: '600px',
+              marginLeft: 'auto',
+              marginRight: 'auto'
+            }}
+          >
+            ⚠️ Demo Mode: Contract integration pending deployment. 
+            Core UI is fully functional.
+          </motion.div>
+        )}
       </motion.section>
 
       <motion.div 
@@ -1063,13 +1160,21 @@ function Disputes({ contracts, account }) {
   );
 }
 
-// Wrap AppContent with ErrorBoundary and Router
+// Wrap AppContent with providers
 function App() {
+  const [queryClient] = React.useState(() => new QueryClient());
+  
   return (
     <ErrorBoundary>
-      <Router>
-        <AppContent />
-      </Router>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider>
+            <Router>
+              <AppContent />
+            </Router>
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
     </ErrorBoundary>
   );
 }
