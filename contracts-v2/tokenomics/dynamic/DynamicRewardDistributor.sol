@@ -35,36 +35,8 @@ contract DynamicRewardDistributor is IDynamicRewards, Ownable, ReentrancyGuard {
     
     // ============ State ============
     
-    struct UserPerformance {
-        uint256 totalTasksCompleted;
-        uint256 totalTaskValue;
-        uint256 successfulDisputes;
-        uint256 totalDisputes;
-        uint256 onTimeCompletions;
-        uint256 lateCompletions;
-        uint256 qualityScoreSum;
-        uint256 lastActivityTime;
-        uint256 currentStreak;
-        uint256 bestStreak;
-        uint256 currentTier;
-        uint256 effectiveMultiplier;
-    }
     
-    struct TaskCategory {
-        string name;
-        uint256 baseRewardRate;
-        uint256 complexityWeight;
-        bool active;
-    }
     
-    struct RewardPool {
-        address token;
-        uint256 totalAllocated;
-        uint256 totalDistributed;
-        uint256 startTime;
-        uint256 endTime;
-        bool active;
-    }
     
     mapping(address => UserPerformance) public performance;
     mapping(uint256 => TaskCategory) public taskCategories;
@@ -93,29 +65,9 @@ contract DynamicRewardDistributor is IDynamicRewards, Ownable, ReentrancyGuard {
     
     // ============ Events ============
     
-    event TaskCompleted(
-        address indexed user,
-        uint256 indexed categoryId,
-        uint256 taskValue,
-        uint256 quality,
-        uint256 timeliness,
-        uint256 newMultiplier
-    );
-    event TierUpgraded(address indexed user, uint256 newTier, uint256 multiplier);
-    event RewardsAllocated(address indexed user, address indexed token, uint256 amount);
-    event RewardsClaimed(address indexed user, address indexed token, uint256 amount);
-    event PerformanceUpdated(address indexed user, uint256 newScore);
-    event CategoryAdded(uint256 indexed categoryId, string name, uint256 baseRate);
-    event PoolCreated(uint256 indexed poolId, address token, uint256 amount);
     
     // ============ Errors ============
     
-    error UnauthorizedTaskMarket();
-    error UnauthorizedOracle();
-    error InvalidCategory();
-    error InvalidPool();
-    error NoRewardsToClaim();
-    error InvalidParameters();
     
     // ============ Constructor ============
     

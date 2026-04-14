@@ -34,7 +34,7 @@ interface ISlashing {
     error AppealWindowOpen();
     error InsufficientBond();
     error SlashNotFound();
-    error UserBanned();
+    error BannedUser();
     error InvalidDistribution();
     
     function proposeSlash(address target, address stakeToken, SlashCategory category, uint256 severity, string calldata reason, bytes32 evidenceHash, uint256 totalStake, address victim) external returns (uint256 slashId);

@@ -56,7 +56,6 @@ contract CovenantTokenomicsHub is Ownable, ReentrancyGuard {
         uint256 finalReward
     );
     event ParameterUpdated(bytes32 indexed param, uint256 value);
-    event TreasuryUpdated(address indexed newTreasury);
     
     // ============ Errors ============
     
@@ -74,6 +73,9 @@ contract CovenantTokenomicsHub is Ownable, ReentrancyGuard {
     
     // ============ Administration ============
     
+    // Restored events from imported interfaces
+    event TreasuryUpdated(address indexed newTreasury);
+
     function setVeToken(address _veCoven) external onlyOwner {
         veCoven = IVeToken(_veCoven);
         emit ModuleUpdated("veCOVEN", _veCoven);

@@ -33,6 +33,8 @@ contract AutonomousExecutor is Ownable, ReentrancyGuard {
     error InvalidProof();
     error TransferFailed();
 
+    constructor() Ownable(msg.sender) {}
+
     function submitIntent(address covenant, bytes32 proofHash) external payable {
         if (msg.value < MIN_INTENT_STAKE) revert InsufficientStake();
         intents[covenant] = ExecutionIntent(msg.sender, block.timestamp, proofHash, false);

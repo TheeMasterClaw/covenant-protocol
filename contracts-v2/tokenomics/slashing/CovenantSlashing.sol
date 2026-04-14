@@ -42,30 +42,12 @@ contract CovenantSlashing is ISlashing, Ownable, ReentrancyGuard {
     
     // ============ State ============
     
-    enum SlashCategory { JUROR, TASK_PROVIDER, COVENANT_PARTY, OPERATOR }
-    enum SlashStatus { PENDING, APPEALED, EXECUTED, REVERSED }
-    
-    struct SlashRecord {
-        address target;
-        SlashCategory category;
-        uint256 severity;
-        uint256 amount;
-        uint256 timestamp;
-        SlashStatus status;
-        string reason;
-        bytes32 evidenceHash;
-        address initiator;
-        uint256 appealBond;
-        uint256 victimShare;
-        address victim;
-    }
-    
     mapping(uint256 => SlashRecord) public slashRecords;
     mapping(address => uint256[]) public userSlashes;
     mapping(address => uint256) public offenderCount;
     mapping(address => uint256) public lastSlashTime;
     mapping(address => uint256) public reputationDamage;
-    mapping(address => bool) public bannedUsers;
+    mapping(address => bool) public isUserBanned;
     mapping(address => bool) public slashInitiators;
     mapping(address => bool) public appealArbiters;
     
@@ -83,45 +65,9 @@ contract CovenantSlashing is ISlashing, Ownable, ReentrancyGuard {
     
     // ============ Events ============
     
-    event SlashProposed(
-        uint256 indexed slashId,
-        address indexed target,
-        uint256 severity,
-        uint256 amount,
-        string reason
-    );
-    event SlashExecuted(
-        uint256 indexed slashId,
-        address indexed target,
-        uint256 amount,
-        uint256 victimAmount,
-        uint256 treasuryAmount,
-        uint256 burnAmount
-    );
-    event SlashAppealed(
-        uint256 indexed slashId,
-        address indexed appellant,
-        uint256 bondAmount
-    );
-    event SlashReversed(
-        uint256 indexed slashId,
-        address indexed appellant,
-        uint256 bondReturned
-    );
-    event UserBanned(address indexed user);
-    event InsuranceClaimed(address indexed claimant, uint256 amount);
     
     // ============ Errors ============
     
-    error UnauthorizedInitiator();
-    error InvalidSeverity();
-    error AlreadyExecuted();
-    error AppealWindowClosed();
-    error AppealWindowOpen();
-    error InsufficientBond();
-    error SlashNotFound();
-    error UserBanned();
-    error InvalidDistribution();
     
     // ============ Constructor ============
     
@@ -182,9 +128,22 @@ contract CovenantSlashing is ISlashing, Ownable, ReentrancyGuard {
         uint256 totalStake,
         address victim
     ) external returns (uint256 slashId) {
+        return _proposeSlash(target, stakeToken, category, severity, reason, evidenceHash, totalStake, victim);
+    }
+
+    function _proposeSlash(
+        address target,
+        address stakeToken,
+        SlashCategory category,
+        uint256 severity,
+        string memory reason,
+        bytes32 evidenceHash,
+        uint256 totalStake,
+        address victim
+    ) internal returns (uint256 slashId) {
         if (!slashInitiators[msg.sender]) revert UnauthorizedInitiator();
         if (severity < 1 || severity > 4) revert InvalidSeverity();
-        if (bannedUsers[target]) revert UserBanned();
+        if (isUserBanned[target]) revert BannedUser();
         
         uint256 baseRate = _getBaseRate(severity);
         uint256 historyFactor = BPS + (offenderCount[target] * 500); // +5% per prior offense
@@ -237,7 +196,7 @@ contract CovenantSlashing is ISlashing, Ownable, ReentrancyGuard {
         // Ban on critical severity or 3+ major offenses
         if (record.severity == LEVEL_CRITICAL || 
             (offenderCount[record.target] >= 3 && record.severity >= LEVEL_MAJOR)) {
-            bannedUsers[record.target] = true;
+            isUserBanned[record.target] = true;
             emit UserBanned(record.target);
         }
         
@@ -372,7 +331,7 @@ contract CovenantSlashing is ISlashing, Ownable, ReentrancyGuard {
         returns (uint256 slashId) 
     {
         if (!slashInitiators[msg.sender]) revert UnauthorizedInitiator();
-        return proposeSlash(target, stakeToken, SlashCategory.JUROR, LEVEL_CRITICAL, 
+        return _proposeSlash(target, stakeToken, SlashCategory.JUROR, LEVEL_CRITICAL, 
             "Fraud or collusion detected", evidenceHash, totalStake, address(0));
     }
     
@@ -392,7 +351,7 @@ contract CovenantSlashing is ISlashing, Ownable, ReentrancyGuard {
         uint256 reputationScore,
         bool isBanned
     ) {
-        return (offenderCount[user], lastSlashTime[user], reputationDamage[user], bannedUsers[user]);
+        return (offenderCount[user], lastSlashTime[user], reputationDamage[user], isUserBanned[user]);
     }
     
     function canAppeal(uint256 slashId) external view returns (bool) {
@@ -421,7 +380,7 @@ contract CovenantSlashing is ISlashing, Ownable, ReentrancyGuard {
         uint256 totalStake,
         string memory reason
     ) internal returns (uint256 slashId) {
-        return proposeSlash(target, stakeToken, category, severity, reason, keccak256(bytes(reason)), totalStake, address(0));
+        return _proposeSlash(target, stakeToken, category, severity, reason, keccak256(bytes(reason)), totalStake, address(0));
     }
     
     function _getBaseRate(uint256 severity) internal pure returns (uint256) {

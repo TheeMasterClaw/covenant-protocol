@@ -51,6 +51,8 @@ contract AIJuryPool is Ownable {
     error SessionAlreadyResolved();
     error InsufficientJurors();
 
+    constructor() Ownable(msg.sender) {}
+
     function registerJuror(address juror, uint256 weight) external onlyOwner {
         registeredJurors[juror] = true;
         jurorWeights[juror] = weight;

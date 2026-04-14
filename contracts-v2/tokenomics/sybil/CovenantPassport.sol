@@ -36,13 +36,6 @@ contract CovenantPassport is IPassport, Ownable, ReentrancyGuard, EIP712 {
     
     // ============ State ============
     
-    struct Stamp {
-        bytes32 provider;       // Provider identifier (keccak256 of name)
-        uint256 issuanceDate;
-        uint256 expirationDate;
-        bytes32 hash;           // Hash of credential data
-        bool verified;
-    }
     
     struct Passport {
         Stamp[] stamps;
@@ -68,36 +61,9 @@ contract CovenantPassport is IPassport, Ownable, ReentrancyGuard, EIP712 {
     
     // ============ Events ============
     
-    event StampAdded(
-        address indexed user,
-        bytes32 indexed provider,
-        uint256 weight,
-        bytes32 hash
-    );
-    event StampRemoved(
-        address indexed user,
-        bytes32 indexed provider
-    );
-    event PassportVerified(address indexed user, uint256 score);
-    event ScoreUpdated(address indexed user, uint256 newScore);
-    event ProviderAdded(bytes32 indexed provider, uint256 weight);
-    event ProviderRemoved(bytes32 indexed provider);
-    event VerifierAdded(address indexed verifier);
-    event VerifierRemoved(address indexed verifier);
-    event ReputationStaked(address indexed user, uint256 amount, uint256 boost);
-    event ReputationUnstaked(address indexed user, uint256 amount);
     
     // ============ Errors ============
     
-    error InvalidProvider();
-    error StampAlreadyExists();
-    error StampNotFound();
-    error StampExpired();
-    error InvalidSignature();
-    error HashAlreadyUsed();
-    error UnauthorizedVerifier();
-    error InsufficientScore();
-    error InvalidStake();
     
     // ============ Constructor ============
     

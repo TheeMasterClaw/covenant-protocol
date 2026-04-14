@@ -31,28 +31,6 @@ contract CovenantBonding is IBonding, Ownable, ReentrancyGuard {
     IERC20 public immutable covenToken;
     address public treasury;
     
-    struct BondType {
-        address principalToken;     // Token accepted for bond
-        address quoteToken;         // Paired token for LP bonds (address(0) for reserves)
-        bool isLpToken;             // Whether principal is an LP token
-        uint256 baseDiscount;       // Base discount in basis points
-        uint256 maxCapacity;        // Max principal accepted
-        uint256 capacityUsed;       // Principal already bonded
-        uint256 vestingTerm;        // Vesting duration in seconds
-        uint256 totalBonded;        // Total bonds of this type
-        bool active;                // Whether this bond type is active
-        uint256 lpFee;              // LP fee tier (for pricing)
-    }
-    
-    struct Bond {
-        uint256 bondTypeId;         // Which bond type
-        uint256 principalAmount;    // Amount of principal deposited
-        uint256 covenAmount;        // Total COVEN to be received
-        uint256 vestedAmount;       // Amount already vested/claimed
-        uint256 lastClaimTime;      // Last claim timestamp
-        uint256 vestingEnd;         // When vesting completes
-    }
-    
     mapping(uint256 => BondType) public bondTypes;
     mapping(uint256 => Bond) public bonds;
     mapping(address => uint256[]) public userBonds;
@@ -69,42 +47,8 @@ contract CovenantBonding is IBonding, Ownable, ReentrancyGuard {
     mapping(address => uint256) public accumulatedRevenue;
     address[] public revenueTokens;
     
-    // ============ Events ============
-    
-    event BondTypeCreated(
-        uint256 indexed bondTypeId,
-        address principalToken,
-        bool isLpToken,
-        uint256 baseDiscount,
-        uint256 maxCapacity,
-        uint256 vestingTerm
-    );
-    event BondDeposited(
-        uint256 indexed bondId,
-        address indexed depositor,
-        uint256 principalAmount,
-        uint256 covenAmount,
-        uint256 discount
-    );
-    event BondClaimed(
-        uint256 indexed bondId,
-        address indexed claimant,
-        uint256 amount
-    );
-    event PriceUpdated(address indexed token, uint256 price);
-    event TreasuryUpdated(address indexed newTreasury);
-    event RevenueDeposited(address indexed token, uint256 amount);
-    
     // ============ Errors ============
     
-    error InvalidBondType();
-    error BondInactive();
-    error InsufficientCapacity();
-    error InvalidDiscount();
-    error InvalidVestingTerm();
-    error NoRewardsToClaim();
-    error BondNotMatured();
-    error UnauthorizedPriceUpdater();
     
     // ============ Constructor ============
     
@@ -241,7 +185,7 @@ contract CovenantBonding is IBonding, Ownable, ReentrancyGuard {
         bond.vestedAmount += amount;
         bond.lastClaimTime = block.timestamp;
         
-        coven.safeTransfer(msg.sender, amount);
+        covenToken.safeTransfer(msg.sender, amount);
         
         emit BondClaimed(bondId, msg.sender, amount);
     }
@@ -264,7 +208,7 @@ contract CovenantBonding is IBonding, Ownable, ReentrancyGuard {
         }
         
         if (totalAmount == 0) revert NoRewardsToClaim();
-        coven.safeTransfer(msg.sender, totalAmount);
+        covenToken.safeTransfer(msg.sender, totalAmount);
     }
     
     /**
@@ -334,7 +278,7 @@ contract CovenantBonding is IBonding, Ownable, ReentrancyGuard {
         BondType storage bt = bondTypes[bondTypeId];
         
         // Get market price of COVEN in principal token terms
-        uint256 covenUsdPrice = tokenPrices[address(coven)];
+        uint256 covenUsdPrice = tokenPrices[address(covenToken)];
         uint256 principalUsdPrice = tokenPrices[bt.principalToken];
         
         if (covenUsdPrice == 0 || principalUsdPrice == 0) {
