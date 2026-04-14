@@ -27,17 +27,20 @@ import { useTheme } from './hooks/useTheme';
 
 // Contract ABIs
 import CovenantFactoryABI from './abis/CovenantFactory.json';
+import AgentCovenantABI from './abis/AgentCovenant.json';
 import TaskMarketABI from './abis/TaskMarket.json';
 import ReputationStakeABI from './abis/ReputationStake.json';
+import AgentRegistryABI from './abis/AgentRegistry.json';
 
 // Target chain (X Layer Testnet for demo)
 const TARGET_CHAIN_ID = 195;
 
-// Contract addresses - TODO: replace with deployed addresses
+// Contract addresses loaded from environment; must be set for target network
 const CONTRACTS = {
   factory: process.env.REACT_APP_FACTORY_ADDRESS,
   taskMarket: process.env.REACT_APP_TASK_MARKET_ADDRESS,
-  reputationStake: process.env.REACT_APP_REPUTATION_STAKE_ADDRESS
+  reputationStake: process.env.REACT_APP_REPUTATION_STAKE_ADDRESS,
+  agentRegistry: process.env.REACT_APP_AGENT_REGISTRY_ADDRESS
 };
 
 function MobileNav() {
@@ -209,6 +212,9 @@ function AppContent() {
     if (CONTRACTS.reputationStake) {
       newContracts.reputationStake = new ethers.Contract(CONTRACTS.reputationStake, ReputationStakeABI, provider);
     }
+    if (CONTRACTS.agentRegistry) {
+      newContracts.agentRegistry = new ethers.Contract(CONTRACTS.agentRegistry, AgentRegistryABI, provider);
+    }
     setContracts(newContracts);
   };
 
@@ -254,6 +260,7 @@ function AppContent() {
                   covenantCount={covenantCount}
                   hasContracts={hasContracts}
                   onTestLoyalty={openLoyaltyChecker}
+                  contracts={contracts}
                 />
               } 
             />
@@ -261,7 +268,7 @@ function AppContent() {
             <Route path="/tasks" element={<TaskMarket contracts={contracts} account={address} />} />
             <Route path="/reputation" element={<Reputation contracts={contracts} account={address} />} />
             <Route path="/disputes" element={<Disputes contracts={contracts} account={address} />} />
-            <Route path="/loyalty" element={<LoyaltyPage onTestLoyalty={openLoyaltyChecker} />} />
+            <Route path="/loyalty" element={<LoyaltyPage onTestLoyalty={openLoyaltyChecker} contracts={contracts} account={address} />} />
           </Routes>
         </main>
         
@@ -275,6 +282,7 @@ function AppContent() {
           <VowLoyaltyChecker
             covenant={loyaltyCheckCovenant}
             account={address}
+            provider={provider}
             onClose={() => setShowLoyaltyChecker(false)}
             onChallenge={(challengeData) => {
               success('Loyalty Challenge Filed', `Challenge filed for Covenant #${challengeData.covenantId}`);
@@ -329,12 +337,10 @@ function Header({ isConnected, isWrongNetwork, onSwitchNetwork, themeToggle }) {
   );
 }
 
-function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty }) {
-  const [covenants] = useState([
-    { id: 2847, title: 'Intelligence Analysis Partnership', initiator: 'M1', counterparty: 'D4', amount: '5.0', status: 'Active', startDate: '2026-04-01', milestones: [{title: 'Kickoff', status: 'completed'}, {title: 'Data Collection', status: 'in_progress'}, {title: 'Analysis', status: 'pending'}], progress: 35 },
-    { id: 2846, title: 'Cross-Chain Arbitrage Alliance', initiator: 'A7', counterparty: 'B2', amount: '12.5', status: 'Pending', proposedDate: '2026-04-10' },
-    { id: 2843, title: 'Sentiment Analysis Task Force', initiator: 'D2', counterparty: 'D9', amount: '2.0', status: 'Disputed', disputeReason: 'Milestone delivery disagreement' }
-  ]);
+function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty, contracts }) {
+  const [covenants, setCovenants] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Helper to determine loyalty badge
   const getLoyaltyBadge = (covenant) => {
@@ -344,11 +350,70 @@ function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty 
     return { label: 'Faithful', class: 'faithful' };
   };
 
-  const [tasks] = useState([
-    { id: 1, title: 'Smart Contract Security Audit', description: 'Audit a new DeFi protocol for vulnerabilities', reward: '3.5', bids: 8, priority: 'High' },
-    { id: 2, title: 'On-Chain Data Analysis', description: 'Analyze X Layer transaction patterns', reward: '1.2', bids: 12, priority: 'Medium' },
-    { id: 3, title: 'Documentation Translation', description: 'Translate protocol docs to CN, JP, KR', reward: '0.5', bids: 5, priority: 'Low' }
-  ]);
+  useEffect(() => {
+    if (!account) return;
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const provider = new ethers.JsonRpcProvider('https://testrpc.xlayer.tech');
+        const fetchedCovenants = [];
+        if (CONTRACTS.factory) {
+          const factory = new ethers.Contract(CONTRACTS.factory, CovenantFactoryABI, provider);
+          const addresses = await factory.getCovenants(0, 50);
+          for (const addr of addresses) {
+            const c = new ethers.Contract(addr, AgentCovenantABI, provider);
+            const [statusNum, initiator, counterparty, terms, remainingBalance, disputedAt] = await Promise.all([
+              c.status(),
+              c.initiator(),
+              c.counterparty(),
+              c.terms(),
+              c.remainingBalance(),
+              c.disputedAt()
+            ]);
+            const statusMap = ['Pending', 'Active', 'Fulfilled', 'Breached', 'Disputed'];
+            const status = statusMap[statusNum] || 'Unknown';
+            if (initiator.toLowerCase() === account.toLowerCase() || counterparty.toLowerCase() === account.toLowerCase()) {
+              fetchedCovenants.push({
+                id: addr,
+                address: addr,
+                title: terms[1] || `Covenant ${addr.slice(0, 6)}...${addr.slice(-4)}`,
+                initiator: `${initiator.slice(0, 6)}...${initiator.slice(-4)}`,
+                counterparty: `${counterparty.slice(0, 6)}...${counterparty.slice(-4)}`,
+                amount: ethers.formatEther(remainingBalance),
+                status,
+                disputedAt: Number(disputedAt)
+              });
+            }
+          }
+        }
+        setCovenants(fetchedCovenants);
+
+        const fetchedTasks = [];
+        if (CONTRACTS.taskMarket) {
+          const taskMarket = new ethers.Contract(CONTRACTS.taskMarket, TaskMarketABI, provider);
+          const nextId = await taskMarket.nextTaskId();
+          const priorityMap = ['Low', 'Medium', 'High'];
+          for (let i = 1; i < Number(nextId); i++) {
+            const t = await taskMarket.tasks(i);
+            fetchedTasks.push({
+              id: Number(t.id),
+              title: t.title,
+              description: t.description,
+              reward: ethers.formatEther(t.reward),
+              priority: priorityMap[t.priority] || 'Medium',
+              bids: 0
+            });
+          }
+        }
+        setTasks(fetchedTasks.slice(0, 3));
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [account]);
 
   return (
     <div className="container">
@@ -453,86 +518,102 @@ function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty 
       <section style={{ margin: '64px 0' }}>
         <h2 className="section-title">Active Covenants</h2>
         <div className="covenant-list">
-          {covenants.map((covenant, index) => (
-            <motion.div 
-              key={covenant.id}
-              className="covenant-item"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-            >
-              <div className="covenant-info">
-                <h4>{covenant.title}</h4>
-                <p>Covenant #{covenant.id} • Created recently</p>
-              </div>
-              <div className="covenant-agents">
-                <div className="agent-avatar">{covenant.initiator}</div>
-                <span>→</span>
-                <div className="agent-avatar">{covenant.counterparty}</div>
-              </div>
-              <div className="covenant-amount">{covenant.amount} ETH</div>
-              <span className={`covenant-status status-${covenant.status.toLowerCase()}`}>
-                {covenant.status}
-              </span>
-              <span className={`loyalty-badge ${getLoyaltyBadge(covenant).class}`}>
-                {getLoyaltyBadge(covenant).label}
-              </span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="covenant-action">
-                  {covenant.status === 'Pending' ? 'Accept' : covenant.status === 'Disputed' ? 'Resolve' : 'View'}
-                </button>
-                <button 
-                  className="test-loyalty-btn"
-                  onClick={() => onTestLoyalty && onTestLoyalty(covenant)}
-                >
-                  ⚔️ Test Loyalty
-                </button>
-                <button 
-                  className="share-btn"
-                  onClick={() => {
-                    if (navigator.share) {
-                      navigator.share({
-                        title: `COVENANT #${covenant.id}`,
-                        text: `Check out this covenant: ${covenant.title}`,
-                        url: `${window.location.origin}/covenants?id=${covenant.id}`
-                      });
-                    } else {
-                      navigator.clipboard.writeText(`${window.location.origin}/covenants?id=${covenant.id}`);
-                      alert('Link copied to clipboard!');
-                    }
-                  }}
-                >
-                  🔗 Share
-                </button>
-              </div>
-            </motion.div>
-          ))}
+          {covenants.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📜</div>
+              <h3>No covenants yet</h3>
+              <p>{loading ? 'Loading your covenants...' : account ? 'You have no active covenants' : 'Connect your wallet to view covenants'}</p>
+            </div>
+          ) : (
+            covenants.map((covenant, index) => (
+              <motion.div
+                key={covenant.id}
+                className="covenant-item"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+              >
+                <div className="covenant-info">
+                  <h4>{covenant.title}</h4>
+                  <p>Covenant #{covenant.id} • Created recently</p>
+                </div>
+                <div className="covenant-agents">
+                  <div className="agent-avatar">{covenant.initiator}</div>
+                  <span>→</span>
+                  <div className="agent-avatar">{covenant.counterparty}</div>
+                </div>
+                <div className="covenant-amount">{covenant.amount} ETH</div>
+                <span className={`covenant-status status-${covenant.status.toLowerCase()}`}>
+                  {covenant.status}
+                </span>
+                <span className={`loyalty-badge ${getLoyaltyBadge(covenant).class}`}>
+                  {getLoyaltyBadge(covenant).label}
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="covenant-action">
+                    {covenant.status === 'Pending' ? 'Accept' : covenant.status === 'Disputed' ? 'Resolve' : 'View'}
+                  </button>
+                  <button
+                    className="test-loyalty-btn"
+                    onClick={() => onTestLoyalty && onTestLoyalty(covenant)}
+                  >
+                    ⚔️ Test Loyalty
+                  </button>
+                  <button
+                    className="share-btn"
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: `COVENANT #${covenant.id}`,
+                          text: `Check out this covenant: ${covenant.title}`,
+                          url: `${window.location.origin}/covenants?id=${covenant.id}`
+                        });
+                      } else {
+                        navigator.clipboard.writeText(`${window.location.origin}/covenants?id=${covenant.id}`);
+                        alert('Link copied to clipboard!');
+                      }
+                    }}
+                  >
+                    🔗 Share
+                  </button>
+                </div>
+              </motion.div>
+            ))
+          )}
         </div>
       </section>
 
       <section style={{ margin: '64px 0' }}>
         <h2 className="section-title">Task Market</h2>
         <div className="task-grid">
-          {tasks.map((task, index) => (
-            <motion.div 
-              key={task.id}
-              className="task-card"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              whileHover={{ y: -4 }}
-            >
-              <span className={`task-priority priority-${task.priority.toLowerCase()}`}>
-                {task.priority} Priority
-              </span>
-              <h4>{task.title}</h4>
-              <p>{task.description}</p>
-              <div className="task-meta">
-                <span className="task-reward">{task.reward} ETH</span>
-                <span className="task-bids">{task.bids} bids</span>
-              </div>
-            </motion.div>
-          ))}
+          {tasks.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">⚡</div>
+              <h3>No tasks found</h3>
+              <p>{loading ? 'Loading tasks...' : account ? 'No tasks available right now' : 'Connect your wallet to view tasks'}</p>
+            </div>
+          ) : (
+            tasks.map((task, index) => (
+              <motion.div
+                key={task.id}
+                className="task-card"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                whileHover={{ y: -4 }}
+              >
+                <span className={`task-priority priority-${task.priority.toLowerCase()}`}>
+                  {task.priority} Priority
+                </span>
+                <h4>{task.title}</h4>
+                <p>{task.description}</p>
+                <div className="task-meta">
+                  <span className="task-reward">{task.reward} ETH</span>
+                  <span className="task-bids">{task.bids} bids</span>
+                </div>
+              </motion.div>
+            ))
+          )}
         </div>
       </section>
     </div>
@@ -542,23 +623,63 @@ function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty 
 function Covenants({ contracts, account, onTestLoyalty }) {
   const [activeTab, setActiveTab] = useState('active');
   const [showMaker, setShowMaker] = useState(false);
-  
-  const myCovenants = {
-    active: [
-      { id: 2847, title: 'Intelligence Analysis Partnership', counterparty: '0x1234...5678', amount: '5.0', startDate: '2026-04-01', endDate: '2026-05-01', milestones: [{title: 'Kickoff', status: 'completed'}, {title: 'Data Collection', status: 'in_progress'}, {title: 'Analysis', status: 'pending'}], progress: 35 },
-      { id: 2845, title: 'Smart Contract Audit', counterparty: '0xabcd...efgh', amount: '12.5', startDate: '2026-03-15', endDate: '2026-04-15', milestones: [{title: 'Initial Review', status: 'completed'}, {title: 'Deep Audit', status: 'completed'}, {title: 'Report', status: 'in_progress'}], progress: 85 },
-    ],
-    pending: [
-      { id: 2849, title: 'Cross-Chain Bridge Integration', counterparty: '0x9876...5432', amount: '25.0', proposedDate: '2026-04-10', status: 'awaiting_acceptance' },
-    ],
-    completed: [
-      { id: 2834, title: 'DeFi Strategy Development', counterparty: '0xwxyz...mnop', amount: '8.0', completedDate: '2026-03-20', rating: 5 },
-      { id: 2821, title: 'Security Assessment', counterparty: '0xqwer...tyui', amount: '3.5', completedDate: '2026-02-28', rating: 4 },
-    ],
-    disputed: [
-      { id: 2843, title: 'Sentiment Analysis Task Force', counterparty: '0xasdf...ghjk', amount: '2.0', disputeReason: 'Milestone delivery disagreement', status: 'in_review' },
-    ]
-  };
+  const [myCovenants, setMyCovenants] = useState({ active: [], pending: [], completed: [], disputed: [] });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!account) return;
+    const fetchCovenants = async () => {
+      setLoading(true);
+      try {
+        const provider = new ethers.JsonRpcProvider('https://testrpc.xlayer.tech');
+        const grouped = { active: [], pending: [], completed: [], disputed: [] };
+        if (CONTRACTS.factory) {
+          const factory = new ethers.Contract(CONTRACTS.factory, CovenantFactoryABI, provider);
+          const addresses = await factory.getCovenants(0, 50);
+          for (const addr of addresses) {
+            const c = new ethers.Contract(addr, AgentCovenantABI, provider);
+            const [statusNum, initiator, counterparty, terms, remainingBalance, disputedAt] = await Promise.all([
+              c.status(),
+              c.initiator(),
+              c.counterparty(),
+              c.terms(),
+              c.remainingBalance(),
+              c.disputedAt()
+            ]);
+            const statusMap = ['Pending', 'Active', 'Fulfilled', 'Breached', 'Disputed'];
+            const status = statusMap[statusNum] || 'Unknown';
+            if (initiator.toLowerCase() !== account.toLowerCase() && counterparty.toLowerCase() !== account.toLowerCase()) continue;
+            const covenant = {
+              id: addr,
+              address: addr,
+              title: terms[1] || `Covenant ${addr.slice(0, 6)}...${addr.slice(-4)}`,
+              counterparty: counterparty.toLowerCase() === account.toLowerCase() ? `${initiator.slice(0, 6)}...${initiator.slice(-4)}` : `${counterparty.slice(0, 6)}...${counterparty.slice(-4)}`,
+              amount: ethers.formatEther(remainingBalance),
+              status,
+              disputedAt: Number(disputedAt),
+              milestones: [],
+              progress: 0
+            };
+            if (status === 'Disputed' || disputedAt > 0) {
+              grouped.disputed.push(covenant);
+            } else if (status === 'Pending') {
+              grouped.pending.push({ ...covenant, proposedDate: new Date().toISOString().split('T')[0] });
+            } else if (status === 'Fulfilled' || status === 'Breached') {
+              grouped.completed.push({ ...covenant, completedDate: new Date().toISOString().split('T')[0], rating: 0 });
+            } else {
+              grouped.active.push(covenant);
+            }
+          }
+        }
+        setMyCovenants(grouped);
+      } catch (err) {
+        console.error('Failed to fetch covenants:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCovenants();
+  }, [account]);
 
   if (showMaker) {
     return (
@@ -599,8 +720,8 @@ function Covenants({ contracts, account, onTestLoyalty }) {
           <div className="empty-state">
             <div className="empty-icon">📜</div>
             <h3>No {activeTab} covenants</h3>
-            <p>{activeTab === 'active' ? 'Create your first covenant to get started' : `You don't have any ${activeTab} covenants`}</p>
-            {activeTab === 'active' && <button className="btn btn-primary" onClick={() => setShowMaker(true)}>Create Covenant</button>}
+            <p>{loading ? 'Loading your covenants...' : activeTab === 'active' ? 'Create your first covenant to get started' : `You don't have any ${activeTab} covenants`}</p>
+            {activeTab === 'active' && !loading && <button className="btn btn-primary" onClick={() => setShowMaker(true)}>Create Covenant</button>}
           </div>
         ) : (
           myCovenants[activeTab].map((covenant, index) => (
@@ -740,24 +861,52 @@ function TaskMarket({ contracts, account }) {
   const [selectedTask, setSelectedTask] = useState(null);
   const [bidAmount, setBidAmount] = useState('');
   const [bidMessage, setBidMessage] = useState('');
+  const [tasks, setTasks] = useState({ browse: [], myTasks: [], myBids: [] });
+  const [loading, setLoading] = useState(false);
 
-  const tasks = {
-    browse: [
-      { id: 1, title: 'Smart Contract Security Audit', description: 'Audit a new DeFi protocol for vulnerabilities. Focus on reentrancy, access control, and economic attacks.', reward: '3.5', bids: 8, priority: 'High', deadline: '2026-04-20', skills: ['Solidity', 'Security'], poster: '0x1234...5678', posted: '2 days ago' },
-      { id: 2, title: 'On-Chain Data Analysis Pipeline', description: 'Build real-time analysis pipeline for X Layer transaction patterns and anomaly detection.', reward: '1.2', bids: 12, priority: 'Medium', deadline: '2026-04-25', skills: ['Python', 'Data', 'SQL'], poster: '0xabcd...efgh', posted: '1 day ago' },
-      { id: 3, title: 'Documentation Translation', description: 'Translate protocol documentation to CN, JP, KR. Technical blockchain knowledge required.', reward: '0.5', bids: 5, priority: 'Low', deadline: '2026-05-01', skills: ['Translation', 'Technical Writing'], poster: '0x9876...5432', posted: '3 days ago' },
-      { id: 4, title: 'Frontend DApp Development', description: 'Build React frontend for new NFT marketplace. Include wallet integration and IPFS metadata handling.', reward: '2.0', bids: 15, priority: 'High', deadline: '2026-04-18', skills: ['React', 'Web3', 'IPFS'], poster: '0xwxyz...mnop', posted: '5 hours ago' },
-      { id: 5, title: 'Liquidity Optimization Strategy', description: 'Design automated liquidity provision strategy for Uniswap V3 positions.', reward: '5.0', bids: 4, priority: 'High', deadline: '2026-04-22', skills: ['DeFi', 'Math', 'Solidity'], poster: '0xqwer...tyui', posted: '1 day ago' },
-    ],
-    myTasks: [
-      { id: 101, title: 'API Integration Module', status: 'in_progress', assignee: '0xasdf...ghjk', reward: '1.5', progress: 60, deadline: '2026-04-15' },
-      { id: 102, title: 'Discord Bot Development', status: 'open', assignee: null, reward: '0.8', bids: 3, deadline: '2026-04-30' },
-    ],
-    myBids: [
-      { id: 1, title: 'Smart Contract Security Audit', myBid: '3.0', status: 'pending', totalBids: 8 },
-      { id: 4, title: 'Frontend DApp Development', myBid: '1.8', status: 'accepted', totalBids: 15 },
-    ]
-  };
+  useEffect(() => {
+    if (!account) return;
+    const fetchTasks = async () => {
+      setLoading(true);
+      try {
+        const provider = new ethers.JsonRpcProvider('https://testrpc.xlayer.tech');
+        const allTasks = [];
+        if (CONTRACTS.taskMarket) {
+          const taskMarket = new ethers.Contract(CONTRACTS.taskMarket, TaskMarketABI, provider);
+          const nextId = await taskMarket.nextTaskId();
+          const priorityMap = ['Low', 'Medium', 'High'];
+          for (let i = 1; i < Number(nextId); i++) {
+            const t = await taskMarket.tasks(i);
+            allTasks.push({
+              id: Number(t.id),
+              poster: t.poster,
+              title: t.title,
+              description: t.description,
+              reward: ethers.formatEther(t.reward),
+              priority: priorityMap[t.priority] || 'Medium',
+              deadline: Number(t.deadline) > 0 ? new Date(Number(t.deadline) * 1000).toISOString().split('T')[0] : '-',
+              skills: [],
+              bids: 0,
+              status: ['Open', 'Assigned', 'Completed', 'Cancelled', 'Disputed'][t.status] || 'Open',
+              assignedTo: t.assignedTo,
+              posted: new Date(Number(t.createdAt) * 1000).toLocaleDateString(),
+              myBid: '0'
+            });
+          }
+        }
+        setTasks({
+          browse: allTasks,
+          myTasks: allTasks.filter(t => t.poster?.toLowerCase() === account.toLowerCase() || t.assignedTo?.toLowerCase() === account.toLowerCase()),
+          myBids: []
+        });
+      } catch (err) {
+        console.error('Failed to fetch tasks:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
+  }, [account]);
 
   if (selectedTask) {
     const task = tasks.browse.find(t => t.id === selectedTask);
@@ -878,7 +1027,7 @@ function TaskMarket({ contracts, account }) {
           <div className="empty-state">
             <div className="empty-icon">📋</div>
             <h3>No tasks found</h3>
-            <p>{activeTab === 'browse' ? 'No tasks match your filters' : `You don't have any ${activeTab === 'myTasks' ? 'tasks' : 'bids'} yet`}</p>
+            <p>{loading ? 'Loading tasks...' : activeTab === 'browse' ? 'No tasks available right now' : `You don't have any ${activeTab === 'myTasks' ? 'tasks' : 'bids'} yet`}</p>
           </div>
         ) : (
           tasks[activeTab].map((task, index) => (
@@ -1112,20 +1261,57 @@ function Reputation({ contracts, account }) {
 function Disputes({ contracts, account }) {
   const [activeTab, setActiveTab] = useState('active');
   const [selectedDispute, setSelectedDispute] = useState(null);
+  const [disputes, setDisputes] = useState({ active: [], jury: [], resolved: [] });
+  const [loading, setLoading] = useState(false);
 
-  const disputes = {
-    active: [
-      { id: 'D-2843', covenantId: 2843, title: 'Sentiment Analysis Task Force', parties: ['0x1234...5678', '0xasdf...ghjk'], amount: '2.0', reason: 'Milestone delivery disagreement', status: 'voting', votesFor: 12, votesAgainst: 3, timeRemaining: '2 days', evidence: ['deliverable.md', 'communications.json'] },
-    ],
-    jury: [
-      { id: 'D-2841', covenantId: 2841, title: 'API Development Contract', parties: ['0xabcd...efgh', '0xyz...123'], amount: '1.5', status: 'evidence', staked: '100', potentialReward: '5', timeRemaining: '5 days' },
-      { id: 'D-2839', covenantId: 2839, title: 'Security Audit Dispute', parties: ['0x9876...5432', '0xwert...yui'], amount: '3.0', status: 'voting', staked: '100', potentialReward: '8', timeRemaining: '1 day' },
-    ],
-    resolved: [
-      { id: 'D-2821', covenantId: 2821, title: 'Design Work Agreement', parties: ['0xqwer...tyui', '0x1234...5678'], amount: '0.5', status: 'resolved', winner: '0xqwer...tyui', resolution: 'Split payment - partial delivery acknowledged', date: '2026-03-15' },
-      { id: 'D-2818', covenantId: 2818, title: 'Consulting Services', parties: ['0xasdf...ghjk', '0xabcd...efgh'], amount: '1.0', status: 'resolved', winner: '0xasdf...ghjk', resolution: 'Full payment to claimant', date: '2026-03-10' },
-    ]
-  };
+  useEffect(() => {
+    if (!account) return;
+    const fetchDisputes = async () => {
+      setLoading(true);
+      try {
+        const provider = new ethers.JsonRpcProvider('https://testrpc.xlayer.tech');
+        const grouped = { active: [], jury: [], resolved: [] };
+        if (CONTRACTS.factory) {
+          const factory = new ethers.Contract(CONTRACTS.factory, CovenantFactoryABI, provider);
+          const addresses = await factory.getCovenants(0, 50);
+          for (const addr of addresses) {
+            const c = new ethers.Contract(addr, AgentCovenantABI, provider);
+            const [statusNum, initiator, counterparty, terms, remainingBalance, disputedAt] = await Promise.all([
+              c.status(),
+              c.initiator(),
+              c.counterparty(),
+              c.terms(),
+              c.remainingBalance(),
+              c.disputedAt()
+            ]);
+            const statusMap = ['Pending', 'Active', 'Fulfilled', 'Breached', 'Disputed'];
+            const status = statusMap[statusNum] || 'Unknown';
+            if (status !== 'Disputed' && Number(disputedAt) === 0) continue;
+            if (initiator.toLowerCase() !== account.toLowerCase() && counterparty.toLowerCase() !== account.toLowerCase()) continue;
+            grouped.active.push({
+              id: `D-${addr.slice(-4)}`,
+              covenantId: addr,
+              title: terms[1] || `Covenant ${addr.slice(0, 6)}...${addr.slice(-4)}`,
+              parties: [`${initiator.slice(0, 6)}...${initiator.slice(-4)}`, `${counterparty.slice(0, 6)}...${counterparty.slice(-4)}`],
+              amount: ethers.formatEther(remainingBalance),
+              reason: 'Milestone delivery disagreement',
+              status: 'voting',
+              votesFor: 0,
+              votesAgainst: 0,
+              timeRemaining: 'TBD',
+              evidence: []
+            });
+          }
+        }
+        setDisputes(grouped);
+      } catch (err) {
+        console.error('Failed to fetch disputes:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDisputes();
+  }, [account]);
 
   if (selectedDispute) {
     const dispute = disputes.active.find(d => d.id === selectedDispute) || disputes.jury.find(d => d.id === selectedDispute);
@@ -1243,7 +1429,7 @@ function Disputes({ contracts, account }) {
           <div className="empty-state">
             <div className="empty-icon">⚖️</div>
             <h3>No disputes</h3>
-            <p>You have no {activeTab} disputes</p>
+            <p>{loading ? 'Loading disputes...' : `You have no ${activeTab} disputes`}</p>
           </div>
         ) : (
           disputes[activeTab].map((dispute, index) => (
@@ -1300,18 +1486,54 @@ function Disputes({ contracts, account }) {
   );
 }
 
-function LoyaltyPage({ onTestLoyalty }) {
-  const allCovenants = [
-    { id: 2847, title: 'Intelligence Analysis Partnership', initiator: 'M1', counterparty: 'D4', amount: '5.0', status: 'Active', startDate: '2026-04-01', milestones: [{title: 'Kickoff', status: 'completed'}, {title: 'Data Collection', status: 'in_progress'}, {title: 'Analysis', status: 'pending'}], progress: 35 },
-    { id: 2845, title: 'Smart Contract Audit', counterparty: '0xabcd...efgh', amount: '12.5', startDate: '2026-03-15', endDate: '2026-04-15', milestones: [{title: 'Initial Review', status: 'completed'}, {title: 'Deep Audit', status: 'completed'}, {title: 'Report', status: 'in_progress'}], progress: 85 },
-    { id: 2849, title: 'Cross-Chain Bridge Integration', counterparty: '0x9876...5432', amount: '25.0', proposedDate: '2026-04-10', status: 'awaiting_acceptance' },
-    { id: 2846, title: 'Cross-Chain Arbitrage Alliance', initiator: 'A7', counterparty: 'B2', amount: '12.5', status: 'Pending', proposedDate: '2026-04-10' },
-    { id: 2843, title: 'Sentiment Analysis Task Force', initiator: 'D2', counterparty: 'D9', amount: '2.0', status: 'Disputed', disputeReason: 'Milestone delivery disagreement' },
-    { id: 2841, title: 'API Development Contract', counterparty: '0xasdf...ghjk', amount: '1.5', status: 'evidence' },
-    { id: 2839, title: 'Security Audit Dispute', counterparty: '0x9876...5432', amount: '3.0', status: 'voting' },
-    { id: 2834, title: 'DeFi Strategy Development', counterparty: '0xwxyz...mnop', amount: '8.0', completedDate: '2026-03-20', rating: 5 },
-    { id: 2821, title: 'Security Assessment', counterparty: '0xqwer...tyui', amount: '3.5', completedDate: '2026-02-28', rating: 4 },
-  ];
+function LoyaltyPage({ onTestLoyalty, contracts, account }) {
+  const [allCovenants, setAllCovenants] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!account) return;
+    const fetchCovenants = async () => {
+      setLoading(true);
+      try {
+        const provider = new ethers.JsonRpcProvider('https://testrpc.xlayer.tech');
+        const fetched = [];
+        if (CONTRACTS.factory) {
+          const factory = new ethers.Contract(CONTRACTS.factory, CovenantFactoryABI, provider);
+          const addresses = await factory.getCovenants(0, 50);
+          for (const addr of addresses) {
+            const c = new ethers.Contract(addr, AgentCovenantABI, provider);
+            const [statusNum, initiator, counterparty, terms, remainingBalance, disputedAt] = await Promise.all([
+              c.status(),
+              c.initiator(),
+              c.counterparty(),
+              c.terms(),
+              c.remainingBalance(),
+              c.disputedAt()
+            ]);
+            const statusMap = ['Pending', 'Active', 'Fulfilled', 'Breached', 'Disputed'];
+            const status = statusMap[statusNum] || 'Unknown';
+            if (initiator.toLowerCase() !== account.toLowerCase() && counterparty.toLowerCase() !== account.toLowerCase()) continue;
+            fetched.push({
+              id: addr,
+              title: terms[1] || `Covenant ${addr.slice(0, 6)}...${addr.slice(-4)}`,
+              initiator: `${initiator.slice(0, 6)}...${initiator.slice(-4)}`,
+              counterparty: `${counterparty.slice(0, 6)}...${counterparty.slice(-4)}`,
+              amount: ethers.formatEther(remainingBalance),
+              status,
+              disputedAt: Number(disputedAt),
+              progress: 0
+            });
+          }
+        }
+        setAllCovenants(fetched);
+      } catch (err) {
+        console.error('Failed to fetch covenants:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCovenants();
+  }, [account]);
 
   const getLoyaltyBadge = (covenant) => {
     if (covenant.status === 'Disputed' || covenant.status === 'voting' || covenant.status === 'evidence') return { label: 'Oathbreaker', class: 'oathbreaker' };
@@ -1368,18 +1590,18 @@ function LoyaltyPage({ onTestLoyalty }) {
           <div className="breakdown-bars">
             <div className="breakdown-item">
               <span>Faithful</span>
-              <div className="breakdown-bar"><div className="fill" style={{width: `${(allCovenants.filter(c => getLoyaltyBadge(c).class === 'faithful').length / allCovenants.length) * 100}%`}} /></div>
-              <span>{Math.round((allCovenants.filter(c => getLoyaltyBadge(c).class === 'faithful').length / allCovenants.length) * 100)}%</span>
+              <div className="breakdown-bar"><div className="fill" style={{width: `${allCovenants.length ? (allCovenants.filter(c => getLoyaltyBadge(c).class === 'faithful').length / allCovenants.length) * 100 : 0}%`}} /></div>
+              <span>{allCovenants.length ? Math.round((allCovenants.filter(c => getLoyaltyBadge(c).class === 'faithful').length / allCovenants.length) * 100) : 0}%</span>
             </div>
             <div className="breakdown-item">
               <span>Questionable</span>
-              <div className="breakdown-bar"><div className="fill" style={{width: `${(allCovenants.filter(c => getLoyaltyBadge(c).class === 'questionable').length / allCovenants.length) * 100}%`, background: 'var(--accent-warning)'}} /></div>
-              <span>{Math.round((allCovenants.filter(c => getLoyaltyBadge(c).class === 'questionable').length / allCovenants.length) * 100)}%</span>
+              <div className="breakdown-bar"><div className="fill" style={{width: `${allCovenants.length ? (allCovenants.filter(c => getLoyaltyBadge(c).class === 'questionable').length / allCovenants.length) * 100 : 0}%`, background: 'var(--accent-warning)'}} /></div>
+              <span>{allCovenants.length ? Math.round((allCovenants.filter(c => getLoyaltyBadge(c).class === 'questionable').length / allCovenants.length) * 100) : 0}%</span>
             </div>
             <div className="breakdown-item">
               <span>Oathbreaker</span>
-              <div className="breakdown-bar"><div className="fill" style={{width: `${(allCovenants.filter(c => getLoyaltyBadge(c).class === 'oathbreaker').length / allCovenants.length) * 100}%`, background: 'var(--accent-danger)'}} /></div>
-              <span>{Math.round((allCovenants.filter(c => getLoyaltyBadge(c).class === 'oathbreaker').length / allCovenants.length) * 100)}%</span>
+              <div className="breakdown-bar"><div className="fill" style={{width: `${allCovenants.length ? (allCovenants.filter(c => getLoyaltyBadge(c).class === 'oathbreaker').length / allCovenants.length) * 100 : 0}%`, background: 'var(--accent-danger)'}} /></div>
+              <span>{allCovenants.length ? Math.round((allCovenants.filter(c => getLoyaltyBadge(c).class === 'oathbreaker').length / allCovenants.length) * 100) : 0}%</span>
             </div>
           </div>
         </div>
@@ -1387,7 +1609,14 @@ function LoyaltyPage({ onTestLoyalty }) {
 
       <h2 className="section-title">All Covenants</h2>
       <div className="tasks-list">
-        {allCovenants.map((covenant, index) => {
+        {allCovenants.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">⚔️</div>
+            <h3>No covenants found</h3>
+            <p>{loading ? 'Loading covenants...' : account ? 'You have no covenants to scan' : 'Connect your wallet to view covenants'}</p>
+          </div>
+        ) : (
+          allCovenants.map((covenant, index) => {
           const badge = getLoyaltyBadge(covenant);
           const score = getScore(covenant);
           return (
@@ -1425,7 +1654,7 @@ function LoyaltyPage({ onTestLoyalty }) {
               </button>
             </motion.div>
           );
-        })}
+        }))}
       </div>
     </div>
   );

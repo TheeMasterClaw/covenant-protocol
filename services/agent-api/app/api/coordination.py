@@ -58,7 +58,10 @@ async def add_agent_to_coordination(
     request: Request, session_id: str, assignment: AgentAssignment
 ):
     coordinator = request.app.state.coordinator
-    session = coordinator.add_agent(session_id, assignment.agent_id, assignment.role)
+    try:
+        session = await coordinator.add_agent(session_id, assignment.agent_id, assignment.role)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session
@@ -67,7 +70,7 @@ async def add_agent_to_coordination(
 @router.delete("/{session_id}/agents/{agent_id}", response_model=CoordinationResponse)
 async def remove_agent_from_coordination(request: Request, session_id: str, agent_id: str):
     coordinator = request.app.state.coordinator
-    session = coordinator.remove_agent(session_id, agent_id)
+    session = await coordinator.remove_agent(session_id, agent_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session

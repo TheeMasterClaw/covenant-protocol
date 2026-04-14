@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
+
+from core.blockchain import get_on_chain_reputation
 
 router = APIRouter()
 
@@ -26,7 +28,7 @@ async def link_external_identity(
     registry = request.app.state.registry
     agent = registry.get(agent_id)
     if not agent:
-        return {"error": "Agent not found"}, 404
+        raise HTTPException(status_code=404, detail="Agent not found")
 
     external_ids = agent.get("external_ids", {})
     external_ids[req.platform] = req.external_id
@@ -45,17 +47,22 @@ async def get_reputation(agent_id: str, request: Request):
     registry = request.app.state.registry
     agent = registry.get(agent_id)
     if not agent:
-        return {"error": "Agent not found"}, 404
+        raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Placeholder: integrate with on-chain ReputationAggregator
-    score = agent.get("success_rate", 0.5) * 100
-    sources = [
-        {"platform": "internal", "score": score, "weight": 1.0},
-    ]
+    wallet = agent.get("wallet_address")
+    if not wallet:
+        raise HTTPException(status_code=400, detail="Agent has no wallet_address")
+
+    try:
+        rep = get_on_chain_reputation(wallet)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Reputation read failed: {exc}")
 
     return ReputationScoreResponse(
         agent_id=agent_id,
-        score=score,
-        sources=sources,
+        score=rep["score"],
+        sources=rep["sources"],
         updated_at=None,
     )

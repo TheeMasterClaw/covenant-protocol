@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
 
+function isValidHash(value) {
+  if (!value || value.trim().length === 0) return false;
+  if (value.startsWith('ipfs://')) return true;
+  // Accept hex strings (with or without 0x) of reasonable hash length
+  const hexPattern = /^(0x)?[0-9a-fA-F]{46,64}$/;
+  // Accept base58 / base32 style CIDs (Qm... or bafy...)
+  const cidPattern = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|bafy[1-9A-HJ-NP-Za-km-z]{55,})$/;
+  return hexPattern.test(value) || cidPattern.test(value);
+}
+
 export function CovenantForm({ factory, account }) {
   const [counterparty, setCounterparty] = useState('');
   const [covenantType, setCovenantType] = useState('TASK');
@@ -8,20 +18,40 @@ export function CovenantForm({ factory, account }) {
   const [duration, setDuration] = useState('7');
   const [stake, setStake] = useState('0.1');
   const [loading, setLoading] = useState(false);
+  const [validationError, setValidationError] = useState(null);
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!factory || !account) return;
-    
+    if (!factory || !account) {
+      alert('Please connect your wallet and ensure the factory contract is available.');
+      return;
+    }
+
+    setValidationError(null);
+
+    if (!ethers.isAddress(counterparty)) {
+      setValidationError('Please enter a valid counterparty Ethereum address.');
+      return;
+    }
+
+    if (!isValidHash(termsHash)) {
+      setValidationError('Terms hash is required and must be a valid IPFS hash (ipfs://...) or CID.');
+      return;
+    }
+
     setLoading(true);
     try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const factoryWithSigner = factory.connect(signer);
+
       const durationSeconds = parseInt(duration) * 24 * 60 * 60;
       const stakeWei = ethers.parseEther(stake);
       
-      const tx = await factory.createCovenant(
+      const tx = await factoryWithSigner.createCovenant(
         counterparty,
         ethers.encodeBytes32String(covenantType),
-        termsHash || 'ipfs://QmDefault',
+        termsHash.trim(),
         durationSeconds,
         { value: stakeWei }
       );
@@ -32,9 +62,11 @@ export function CovenantForm({ factory, account }) {
       // Reset form
       setCounterparty('');
       setTermsHash('');
+      setDuration('7');
+      setStake('0.1');
     } catch (error) {
       console.error('Error creating covenant:', error);
-      alert('Failed to create covenant: ' + error.message);
+      alert('Failed to create covenant: ' + (error?.reason || error?.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -44,8 +76,14 @@ export function CovenantForm({ factory, account }) {
     <div className="covenant-form">
       <h3>Create New Covenant</h3>
       <form onSubmit={handleSubmit}>
+        {validationError && (
+          <div className="form-error" style={{ color: '#ff4757', marginBottom: '16px', padding: '12px', background: 'rgba(255,71,87,0.1)', borderRadius: '8px' }}>
+            {validationError}
+          </div>
+        )}
+
         <div className="form-group">
-          <label className="form-label">Counterparty Address</label>
+          <label className="form-label">Counterparty Address *</label>
           <input
             type="text"
             className="form-input"
@@ -58,11 +96,12 @@ export function CovenantForm({ factory, account }) {
         
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Covenant Type</label>
+            <label className="form-label">Covenant Type *</label>
             <select
               className="form-input"
               value={covenantType}
               onChange={(e) => setCovenantType(e.target.value)}
+              required
             >
               <option value="TASK">Task Agreement</option>
               <option value="ALLIANCE">Strategic Alliance</option>
@@ -72,7 +111,7 @@ export function CovenantForm({ factory, account }) {
           </div>
           
           <div className="form-group">
-            <label className="form-label">Duration (days)</label>
+            <label className="form-label">Duration (days) *</label>
             <input
               type="number"
               className="form-input"
@@ -85,7 +124,7 @@ export function CovenantForm({ factory, account }) {
         </div>
         
         <div className="form-group">
-          <label className="form-label">Stake Amount (ETH)</label>
+          <label className="form-label">Stake Amount (ETH) *</label>
           <input
             type="number"
             step="0.001"
@@ -99,14 +138,16 @@ export function CovenantForm({ factory, account }) {
         </div>
         
         <div className="form-group">
-          <label className="form-label">Terms IPFS Hash (optional)</label>
+          <label className="form-label">Terms IPFS Hash *</label>
           <input
             type="text"
             className="form-input"
             placeholder="ipfs://Qm..."
             value={termsHash}
             onChange={(e) => setTermsHash(e.target.value)}
+            required
           />
+          <small className="form-hint">Must start with ipfs:// or be a valid CID/hash</small>
         </div>
         
         <button

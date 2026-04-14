@@ -1,27 +1,114 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ethers } from 'ethers';
 import { AgentCard } from './AgentCard';
-
-const MOCK_AGENTS = [
-  { address: '0x1234...5678', reputationScore: 947, tasksCompleted: 156, covenantsCompleted: 42, skills: ['Solidity', 'AI/ML', 'Data Analysis', 'Security Audit'], isActive: true, stakeAmount: '45.2' },
-  { address: '0xabcd...efgh', reputationScore: 823, tasksCompleted: 89, covenantsCompleted: 23, skills: ['Smart Contracts', 'DeFi', 'Frontend'], isActive: true, stakeAmount: '32.1' },
-  { address: '0x9876...5432', reputationScore: 756, tasksCompleted: 67, covenantsCompleted: 18, skills: ['Backend', 'DevOps', 'Monitoring'], isActive: true, stakeAmount: '28.5' },
-  { address: '0xwxyz...mnop', reputationScore: 691, tasksCompleted: 45, covenantsCompleted: 12, skills: ['Design', 'UX', 'Documentation'], isActive: false, stakeAmount: '15.0' },
-  { address: '0xqwer...tyui', reputationScore: 634, tasksCompleted: 34, covenantsCompleted: 8, skills: ['Testing', 'QA', 'Automation'], isActive: true, stakeAmount: '12.3' },
-  { address: '0xasdf...ghjk', reputationScore: 892, tasksCompleted: 134, covenantsCompleted: 38, skills: ['Solidity', 'ZK-Proofs', 'Cryptography'], isActive: true, stakeAmount: '50.0' },
-];
+import AgentRegistryABI from '../abis/AgentRegistry.json';
+import ReputationStakeABI from '../abis/ReputationStake.json';
 
 const SKILL_OPTIONS = ['All', 'Solidity', 'AI/ML', 'Data Analysis', 'Security Audit', 'Smart Contracts', 'DeFi', 'Frontend', 'Backend', 'DevOps'];
 
+const AGENT_REGISTRY_ADDRESS = process.env.REACT_APP_AGENT_REGISTRY_ADDRESS;
+const REPUTATION_STAKE_ADDRESS = process.env.REACT_APP_REPUTATION_STAKE_ADDRESS;
+
 export function AgentDiscovery({ contracts, account }) {
-  const [agents, setAgents] = useState(MOCK_AGENTS);
-  const [filteredAgents, setFilteredAgents] = useState(MOCK_AGENTS);
+  const [agents, setAgents] = useState([]);
+  const [filteredAgents, setFilteredAgents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSkill, setSelectedSkill] = useState('All');
   const [sortBy, setSortBy] = useState('reputation');
   const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [minReputation, setMinReputation] = useState(0);
   const [viewMode, setViewMode] = useState('grid');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        let provider;
+        let registry;
+        let reputation;
+
+        if (contracts?.agentRegistry && contracts?.reputationStake) {
+          registry = contracts.agentRegistry;
+          reputation = contracts.reputationStake;
+        } else if (window.ethereum) {
+          provider = new ethers.BrowserProvider(window.ethereum);
+          if (AGENT_REGISTRY_ADDRESS) {
+            registry = new ethers.Contract(AGENT_REGISTRY_ADDRESS, AgentRegistryABI, provider);
+          }
+          if (REPUTATION_STAKE_ADDRESS) {
+            reputation = new ethers.Contract(REPUTATION_STAKE_ADDRESS, ReputationStakeABI, provider);
+          }
+        }
+
+        if (!registry) {
+          setAgents([]);
+          setLoading(false);
+          return;
+        }
+
+        const totalAgents = await registry.totalAgents();
+        const limit = totalAgents > 0 ? Number(totalAgents) : 0;
+
+        let agentAddresses = [];
+        if (limit > 0) {
+          // Try getTopAgents first
+          try {
+            agentAddresses = await registry.getTopAgents(limit);
+          } catch {
+            // Fallback: iterate allAgents array
+            const calls = [];
+            for (let i = 0; i < limit; i++) {
+              calls.push(registry.allAgents(i).catch(() => null));
+            }
+            const results = await Promise.all(calls);
+            agentAddresses = results.filter(addr => addr !== null);
+          }
+        }
+
+        const agentData = await Promise.all(
+          agentAddresses.map(async (address) => {
+            try {
+              const profile = await registry.getAgent(address);
+              let stakeInfo = { totalStaked: 0n, reputationScore: 0n };
+              if (reputation) {
+                try {
+                  stakeInfo = await reputation.agents(address);
+                } catch (e) {
+                  // ignore
+                }
+              }
+              return {
+                address,
+                reputationScore: Number(profile.reputationScore || stakeInfo.reputationScore || 0),
+                tasksCompleted: Number(profile.tasksCompleted || 0),
+                covenantsCompleted: Number(profile.covenantsCompleted || 0),
+                skills: profile.skillNames?.length > 0 ? profile.skillNames : profile.skills?.map(s => `Skill ${s}`) || [],
+                isActive: profile.isActive || false,
+                stakeAmount: ethers.formatEther(stakeInfo.totalStaked || 0n),
+              };
+            } catch (e) {
+              return null;
+            }
+          })
+        );
+
+        const validAgents = agentData.filter(a => a !== null);
+        setAgents(validAgents);
+      } catch (err) {
+        console.error('Error fetching agents:', err);
+        setError(err.message || 'Failed to load agents');
+        setAgents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAgents();
+  }, [contracts]);
 
   useEffect(() => {
     let filtered = [...agents];
@@ -144,29 +231,49 @@ export function AgentDiscovery({ contracts, account }) {
         </div>
       </div>
 
-      <div className={`agents-container ${viewMode}`}>
-        <AnimatePresence mode="popLayout">
-          {filteredAgents.map((agent, index) => (
-            <motion.div
-              key={agent.address}
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <AgentCard agent={agent} index={index} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {filteredAgents.length === 0 && (
+      {loading && (
         <div className="empty-state">
-          <div className="empty-icon">🔍</div>
-          <h3>No agents found</h3>
-          <p>Try adjusting your filters or search query</p>
+          <div className="empty-icon">⏳</div>
+          <h3>Loading agents...</h3>
+          <p>Fetching verified agents from the blockchain</p>
         </div>
+      )}
+
+      {!loading && error && (
+        <div className="empty-state">
+          <div className="empty-icon">⚠️</div>
+          <h3>Error loading agents</h3>
+          <p>{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <>
+          <div className={`agents-container ${viewMode}`}>
+            <AnimatePresence mode="popLayout">
+              {filteredAgents.map((agent, index) => (
+                <motion.div
+                  key={agent.address}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                >
+                  <AgentCard agent={agent} index={index} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {filteredAgents.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon">🔍</div>
+              <h3>No agents found</h3>
+              <p>Try adjusting your filters or search query</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

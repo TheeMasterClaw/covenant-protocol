@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ethers } from 'ethers';
+import AgentRegistryABI from '../abis/AgentRegistry.json';
+import ReputationStakeABI from '../abis/ReputationStake.json';
 
 const STEPS = ['Select Counterparty', 'Define Terms', 'Set Milestones', 'Review & Create'];
 
-const MOCK_AGENTS = [
-  { address: '0x1234...5678', name: 'AlphaAgent', reputation: 947, skills: ['Solidity', 'Security'] },
-  { address: '0xabcd...efgh', name: 'BetaBot', reputation: 823, skills: ['AI/ML', 'Data'] },
-  { address: '0x9876...5432', name: 'GammaGuard', reputation: 756, skills: ['DevOps', 'Monitoring'] },
-];
+const AGENT_REGISTRY_ADDRESS = process.env.REACT_APP_AGENT_REGISTRY_ADDRESS;
+const REPUTATION_STAKE_ADDRESS = process.env.REACT_APP_REPUTATION_STAKE_ADDRESS;
 
 const COVENANT_TEMPLATES = [
   { id: 'development', name: 'Development Partnership', description: 'Collaborative development with milestone-based payments', icon: '💻' },
@@ -19,6 +19,8 @@ const COVENANT_TEMPLATES = [
 
 export function CovenantMaker({ contracts, account, onSuccess }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [agents, setAgents] = useState([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
   const [formData, setFormData] = useState({
     counterparty: '',
     covenantType: 'development',
@@ -36,6 +38,87 @@ export function CovenantMaker({ contracts, account, onSuccess }) {
     collateral: '',
   });
   const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      setAgentsLoading(true);
+      try {
+        let provider;
+        let registry;
+        let reputation;
+
+        if (contracts?.agentRegistry && contracts?.reputationStake) {
+          registry = contracts.agentRegistry;
+          reputation = contracts.reputationStake;
+        } else if (window.ethereum) {
+          provider = new ethers.BrowserProvider(window.ethereum);
+          if (AGENT_REGISTRY_ADDRESS) {
+            registry = new ethers.Contract(AGENT_REGISTRY_ADDRESS, AgentRegistryABI, provider);
+          }
+          if (REPUTATION_STAKE_ADDRESS) {
+            reputation = new ethers.Contract(REPUTATION_STAKE_ADDRESS, ReputationStakeABI, provider);
+          }
+        }
+
+        if (!registry) {
+          setAgents([]);
+          setAgentsLoading(false);
+          return;
+        }
+
+        const totalAgents = await registry.totalAgents();
+        const limit = totalAgents > 0 ? Number(totalAgents) : 0;
+
+        let agentAddresses = [];
+        if (limit > 0) {
+          try {
+            agentAddresses = await registry.getTopAgents(limit);
+          } catch {
+            const calls = [];
+            for (let i = 0; i < limit; i++) {
+              calls.push(registry.allAgents(i).catch(() => null));
+            }
+            const results = await Promise.all(calls);
+            agentAddresses = results.filter(addr => addr !== null);
+          }
+        }
+
+        const agentData = await Promise.all(
+          agentAddresses.map(async (address) => {
+            try {
+              const profile = await registry.getAgent(address);
+              let stakeInfo = { totalStaked: 0n, reputationScore: 0n };
+              if (reputation) {
+                try {
+                  stakeInfo = await reputation.agents(address);
+                } catch (e) {
+                  // ignore
+                }
+              }
+              return {
+                address,
+                name: profile.metadataURI || `Agent ${address.slice(0, 6)}`,
+                reputation: Number(profile.reputationScore || stakeInfo.reputationScore || 0),
+                skills: profile.skillNames?.length > 0 ? profile.skillNames : profile.skills?.map(s => `Skill ${s}`) || [],
+              };
+            } catch (e) {
+              return null;
+            }
+          })
+        );
+
+        setAgents(agentData.filter(a => a !== null));
+      } catch (err) {
+        console.error('Error fetching agents:', err);
+        setAgents([]);
+      } finally {
+        setAgentsLoading(false);
+      }
+    };
+
+    fetchAgents();
+  }, [contracts]);
 
   const updateForm = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -64,17 +147,67 @@ export function CovenantMaker({ contracts, account, onSuccess }) {
   };
 
   const handleCreate = async () => {
+    setCreateError(null);
+    if (!contracts?.factory) {
+      setCreateError('Factory contract not connected. Please connect your wallet.');
+      return;
+    }
+    if (!account) {
+      setCreateError('Please connect your wallet.');
+      return;
+    }
+    if (!formData.counterparty || !ethers.isAddress(formData.counterparty)) {
+      setCreateError('Please enter a valid counterparty address.');
+      return;
+    }
+    if (!formData.title || !formData.description || !formData.totalValue || !formData.duration) {
+      setCreateError('Please fill in all required fields.');
+      return;
+    }
+
     setIsCreating(true);
-    // Simulate contract call
-    await new Promise(r => setTimeout(r, 2000));
-    setIsCreating(false);
-    onSuccess?.();
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const factory = contracts.factory.connect(signer);
+
+      const durationSeconds = parseInt(formData.duration) * 24 * 60 * 60;
+      const stakeWei = ethers.parseEther(formData.totalValue);
+      const typeBytes = ethers.encodeBytes32String(formData.covenantType.slice(0, 31));
+
+      // Build a terms hash from the form data (ideally this would be uploaded to IPFS)
+      const termsObj = {
+        title: formData.title,
+        description: formData.description,
+        milestones: formData.milestones,
+        disputeResolver: formData.disputeResolver,
+        earlyTermination: formData.earlyTermination,
+        createdAt: new Date().toISOString(),
+      };
+      const termsHash = 'data:application/json;base64,' + btoa(JSON.stringify(termsObj));
+
+      const tx = await factory.createCovenant(
+        formData.counterparty,
+        typeBytes,
+        termsHash,
+        durationSeconds,
+        { value: stakeWei }
+      );
+
+      await tx.wait();
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error creating covenant:', error);
+      setCreateError(error?.reason || error?.message || 'Transaction failed');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const canProceed = () => {
     switch (currentStep) {
-      case 0: return formData.counterparty !== '';
-      case 1: return formData.title && formData.description && formData.totalValue;
+      case 0: return formData.counterparty !== '' && ethers.isAddress(formData.counterparty);
+      case 1: return formData.title && formData.description && formData.totalValue && formData.duration;
       case 2: return formData.milestones.every(m => m.title && m.amount && m.deadline);
       case 3: return true;
       default: return false;
@@ -102,6 +235,12 @@ export function CovenantMaker({ contracts, account, onSuccess }) {
         ))}
       </div>
 
+      {createError && (
+        <div className="form-error" style={{ color: '#ff4757', marginBottom: '16px', padding: '12px', background: 'rgba(255,71,87,0.1)', borderRadius: '8px' }}>
+          {createError}
+        </div>
+      )}
+
       <div className="maker-content">
         <AnimatePresence mode="wait">
           {currentStep === 0 && (
@@ -115,35 +254,45 @@ export function CovenantMaker({ contracts, account, onSuccess }) {
               <h3>Select Counterparty</h3>
               <p>Choose an agent to form a covenant with</p>
 
-              <div className="agent-selection">
-                {MOCK_AGENTS.map(agent => (
-                  <div
-                    key={agent.address}
-                    className={`agent-option ${formData.counterparty === agent.address ? 'selected' : ''}`}
-                    onClick={() => updateForm('counterparty', agent.address)}
-                  >
-                    <div className="agent-avatar">{agent.name[0]}</div>
-                    <div className="agent-details">
-                      <h4>{agent.name}</h4>
-                      <p>{agent.address}</p>
-                      <div className="agent-meta">
-                        <span className="reputation">★ {agent.reputation}</span>
-                        <span className="skills">{agent.skills.join(', ')}</span>
+              {agentsLoading ? (
+                <div className="agent-selection">
+                  <p>Loading agents from blockchain...</p>
+                </div>
+              ) : agents.length === 0 ? (
+                <div className="agent-selection">
+                  <p>No registered agents found. Enter a custom address below.</p>
+                </div>
+              ) : (
+                <div className="agent-selection">
+                  {agents.map(agent => (
+                    <div
+                      key={agent.address}
+                      className={`agent-option ${formData.counterparty === agent.address ? 'selected' : ''}`}
+                      onClick={() => updateForm('counterparty', agent.address)}
+                    >
+                      <div className="agent-avatar">{agent.name[0]}</div>
+                      <div className="agent-details">
+                        <h4>{agent.name}</h4>
+                        <p>{agent.address.slice(0, 6)}...{agent.address.slice(-4)}</p>
+                        <div className="agent-meta">
+                          <span className="reputation">★ {agent.reputation}</span>
+                          <span className="skills">{agent.skills.join(', ')}</span>
+                        </div>
+                      </div>
+                      <div className="selection-indicator">
+                        {formData.counterparty === agent.address && '✓'}
                       </div>
                     </div>
-                    <div className="selection-indicator">
-                      {formData.counterparty === agent.address && '✓'}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               <div className="form-group">
                 <label>Or enter custom address:</label>
                 <input
                   type="text"
                   placeholder="0x..."
-                  value={formData.counterparty.startsWith('0x') && formData.counterparty.length > 10 ? formData.counterparty : ''}
+                  value={ethers.isAddress(formData.counterparty) && !agents.find(a => a.address === formData.counterparty) ? formData.counterparty : ''}
                   onChange={(e) => updateForm('counterparty', e.target.value)}
                 />
               </div>
@@ -180,43 +329,47 @@ export function CovenantMaker({ contracts, account, onSuccess }) {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Covenant Title</label>
+                  <label>Covenant Title *</label>
                   <input
                     type="text"
                     placeholder="e.g., Cross-Chain Arbitrage Partnership"
                     value={formData.title}
                     onChange={(e) => updateForm('title', e.target.value)}
+                    required
                   />
                 </div>
                 <div className="form-group">
-                  <label>Total Value (ETH)</label>
+                  <label>Total Value (ETH) *</label>
                   <input
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                     value={formData.totalValue}
                     onChange={(e) => updateForm('totalValue', e.target.value)}
+                    required
                   />
                 </div>
               </div>
 
               <div className="form-group">
-                <label>Description</label>
+                <label>Description *</label>
                 <textarea
                   rows="4"
                   placeholder="Describe the covenant terms, deliverables, and expectations..."
                   value={formData.description}
                   onChange={(e) => updateForm('description', e.target.value)}
+                  required
                 />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Duration (days)</label>
+                  <label>Duration (days) *</label>
                   <input
                     type="number"
                     value={formData.duration}
                     onChange={(e) => updateForm('duration', e.target.value)}
+                    required
                   />
                 </div>
                 <div className="form-group">
@@ -282,30 +435,33 @@ export function CovenantMaker({ contracts, account, onSuccess }) {
                     </div>
                     <div className="form-row">
                       <div className="form-group">
-                        <label>Title</label>
+                        <label>Title *</label>
                         <input
                           type="text"
                           value={milestone.title}
                           onChange={(e) => updateMilestone(index, 'title', e.target.value)}
                           placeholder="Milestone title"
+                          required
                         />
                       </div>
                       <div className="form-group small">
-                        <label>Amount (%)</label>
+                        <label>Amount (%) *</label>
                         <input
                           type="number"
                           value={milestone.amount}
                           onChange={(e) => updateMilestone(index, 'amount', e.target.value)}
                           placeholder="0"
+                          required
                         />
                       </div>
                       <div className="form-group small">
-                        <label>Days</label>
+                        <label>Days *</label>
                         <input
                           type="number"
                           value={milestone.deadline}
                           onChange={(e) => updateMilestone(index, 'deadline', e.target.value)}
                           placeholder="0"
+                          required
                         />
                       </div>
                     </div>
@@ -442,7 +598,7 @@ export function CovenantMaker({ contracts, account, onSuccess }) {
               <button
                 className="create-covenant-btn"
                 onClick={handleCreate}
-                disabled={isCreating}
+                disabled={isCreating || !canProceed()}
               >
                 {isCreating ? (
                   <>

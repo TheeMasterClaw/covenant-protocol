@@ -36,17 +36,9 @@ interface DisputeState {
 export const useDisputeStore = create<DisputeState>()(
   persist(
     (set) => ({
-      disputes: [
-        { id: 'D-2843', covenantId: 2843, title: 'Sentiment Analysis Task Force', parties: ['0x1234...5678', '0xasdf...ghjk'], amount: '2.0', reason: 'Milestone delivery disagreement', status: 'voting', votesFor: 12, votesAgainst: 3, timeRemaining: '2 days', evidence: ['deliverable.md', 'communications.json'] },
-      ],
-      juryDuty: [
-        { id: 'D-2841', covenantId: 2841, title: 'API Development Contract', parties: ['0xabcd...efgh', '0xyz...123'], amount: '1.5', status: 'evidence', staked: '100', potentialReward: '5', timeRemaining: '5 days' },
-        { id: 'D-2839', covenantId: 2839, title: 'Security Audit Dispute', parties: ['0x9876...5432', '0xwert...yui'], amount: '3.0', status: 'voting', staked: '100', potentialReward: '8', timeRemaining: '1 day' },
-      ],
-      resolved: [
-        { id: 'D-2821', covenantId: 2821, title: 'Design Work Agreement', parties: ['0xqwer...tyui', '0x1234...5678'], amount: '0.5', status: 'resolved', winner: '0xqwer...tyui', resolution: 'Split payment - partial delivery acknowledged', date: '2026-03-15' },
-        { id: 'D-2818', covenantId: 2818, title: 'Consulting Services', parties: ['0xasdf...ghjk', '0xabcd...efgh'], amount: '1.0', status: 'resolved', winner: '0xasdf...ghjk', resolution: 'Full payment to claimant', date: '2026-03-10' },
-      ],
+      disputes: [],
+      juryDuty: [],
+      resolved: [],
       selectedDispute: null,
       activeTab: 'active',
       setDisputes: (disputes) => set({ disputes }),

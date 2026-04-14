@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ethers } from 'ethers';
+import AgentCovenantABI from '../abis/AgentCovenant.json';
 
-export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
+const STATUS_MAP = ['Pending', 'Active', 'Completed', 'Disputed', 'Breach', 'Cancelled'];
+
+export function VowLoyaltyChecker({ covenant, account, provider, onChallenge, onClose }) {
   const [checks, setChecks] = useState([]);
   const [loyaltyScore, setLoyaltyScore] = useState(100);
   const [loading, setLoading] = useState(true);
   const [selectedBreach, setSelectedBreach] = useState(null);
+  const [contractError, setContractError] = useState(null);
   
   // Commit-reveal state (MEV protection from research)
   const [phase, setPhase] = useState('scanning'); // scanning | committing | committed | revealing | revealed
@@ -25,100 +30,182 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
   }, [phase, revealCountdown]);
 
   useEffect(() => {
-    // Automated breach detection logic
-    const runChecks = () => {
+    const runChecks = async () => {
+      setLoading(true);
+      setContractError(null);
       const results = [];
       let score = 100;
-      const now = new Date('2026-04-13');
+      const now = new Date();
 
-      // Check 1: Milestone deadlines
-      if (covenant.milestones) {
-        covenant.milestones.forEach((m, idx) => {
-          if (m.status === 'pending' && idx > 0) {
-            const prev = covenant.milestones[idx - 1];
-            if (prev.status === 'completed') {
-              // Simulate deadline: 7 days after previous completion
-              results.push({
-                id: `milestone-${idx}`,
-                type: 'warning',
-                title: 'Milestone Deadline Approaching',
-                detail: `Milestone "${m.title}" was expected within 7 days of previous completion.`,
-                penalty: 5,
-                auto: true
-              });
-              score -= 5;
+      try {
+        if (!covenant?.address) {
+          setContractError('Covenant contract address not available for on-chain verification.');
+          setLoading(false);
+          setPhase('committing');
+          return;
+        }
+
+        let readProvider = provider;
+        if (!readProvider && window.ethereum) {
+          readProvider = new ethers.BrowserProvider(window.ethereum);
+        }
+
+        if (!readProvider) {
+          setContractError('No blockchain provider available.');
+          setLoading(false);
+          setPhase('committing');
+          return;
+        }
+
+        const contract = new ethers.Contract(covenant.address, AgentCovenantABI, readProvider);
+
+        const [statusNum, terms, remainingBalance, disputedAt, disputeReason, initiator, counterparty] = await Promise.all([
+          contract.status().catch(() => 0),
+          contract.terms().catch(() => ''),
+          contract.remainingBalance().catch(() => 0n),
+          contract.disputedAt().catch(() => 0n),
+          contract.disputeReason().catch(() => ''),
+          contract.initiator().catch(() => ''),
+          contract.counterparty().catch(() => ''),
+        ]);
+
+        const status = typeof statusNum === 'number' || typeof statusNum === 'bigint' ? STATUS_MAP[Number(statusNum)] || `Status ${statusNum}` : String(statusNum);
+
+        // Fetch milestones
+        let milestones = [];
+        try {
+          // Try to read milestone count by iterating until revert
+          let idx = 0;
+          while (idx < 20) {
+            try {
+              const m = await contract.milestones(idx);
+              milestones.push(m);
+              idx++;
+            } catch {
+              break;
             }
           }
-        });
-      }
+        } catch (e) {
+          // ignore
+        }
 
-      // Check 2: Payment staked
-      if (parseFloat(covenant.amount) > 0 && covenant.status !== 'Active') {
-        // In a real implementation, check if amount is locked in escrow
-        results.push({
-          id: 'stake',
-          type: 'info',
-          title: 'Funds Not Yet Escrowed',
-          detail: 'The full covenant amount has not been locked in the smart contract.',
-          penalty: 0,
-          auto: true
-        });
-      }
-
-      // Check 3: Activity/response time simulation
-      if (covenant.status === 'Active') {
-        const daysSinceStart = Math.floor((now - new Date(covenant.startDate)) / (1000 * 60 * 60 * 24));
-        if (daysSinceStart > 7 && covenant.progress < 10) {
+        // Check 1: Active dispute
+        if (Number(disputedAt) > 0 || status === 'Disputed') {
           results.push({
-            id: 'inactive',
+            id: 'disputed',
+            type: 'breach',
+            title: 'Active Dispute in Progress',
+            detail: disputeReason || 'This covenant is currently under dispute resolution.',
+            penalty: 25,
+            auto: true
+          });
+          score -= 25;
+        }
+
+        // Check 2: Breach status
+        if (status === 'Breach' || status === 'Breached') {
+          results.push({
+            id: 'breach',
+            type: 'breach',
+            title: 'Covenant Declared Breach',
+            detail: 'This covenant has been declared a breach on-chain.',
+            penalty: 30,
+            auto: true
+          });
+          score -= 30;
+        }
+
+        // Check 3: Cancelled status
+        if (status === 'Cancelled') {
+          results.push({
+            id: 'cancelled',
             type: 'warning',
-            title: 'Slow Progress Detected',
-            detail: `Only ${covenant.progress}% complete after ${daysSinceStart} days.`,
+            title: 'Covenant Cancelled',
+            detail: 'This covenant was cancelled before completion.',
+            penalty: 15,
+            auto: true
+          });
+          score -= 15;
+        }
+
+        // Check 4: Funds not escrowed (remainingBalance is 0 on an active covenant)
+        if (status === 'Active' && remainingBalance === 0n) {
+          results.push({
+            id: 'funds',
+            type: 'warning',
+            title: 'No Funds in Escrow',
+            detail: 'The covenant is active but the remaining balance is zero.',
             penalty: 10,
             auto: true
           });
           score -= 10;
         }
-      }
 
-      // Check 4: Prior disputes with counterparty
-      if (covenant.status === 'Disputed') {
-        results.push({
-          id: 'disputed',
-          type: 'breach',
-          title: 'Active Dispute in Progress',
-          detail: 'This covenant is currently under dispute resolution.',
-          penalty: 25,
-          auto: true
-        });
-        score -= 25;
-      }
+        // Check 5: Pending milestones
+        if (milestones.length > 0) {
+          const pendingCount = milestones.filter(m => !m.completed).length;
+          const unpaidCount = milestones.filter(m => m.completed && !m.paid).length;
+          if (pendingCount > 0 && status === 'Active') {
+            results.push({
+              id: 'pending-milestones',
+              type: 'info',
+              title: 'Pending Milestones',
+              detail: `${pendingCount} of ${milestones.length} milestones remain incomplete.`,
+              penalty: 0,
+              auto: true
+            });
+          }
+          if (unpaidCount > 0) {
+            results.push({
+              id: 'unpaid-milestones',
+              type: 'warning',
+              title: 'Completed but Unpaid Milestones',
+              detail: `${unpaidCount} completed milestone(s) have not been paid out.`,
+              penalty: 10,
+              auto: true
+            });
+            score -= 10;
+          }
+        }
 
-      // Check 5: Communication/response (mock)
-      if (covenant.status === 'Pending' && covenant.proposedDate) {
-        const daysPending = Math.floor((now - new Date(covenant.proposedDate)) / (1000 * 60 * 60 * 24));
-        if (daysPending > 3) {
+        // Check 6: Long pending acceptance
+        if (status === 'Pending') {
           results.push({
             id: 'pending',
-            type: 'warning',
-            title: 'Pending Acceptance Timeout',
-            detail: `Counterparty has not responded to the covenant proposal in ${daysPending} days.`,
-            penalty: 8,
+            type: 'info',
+            title: 'Awaiting Counterparty Acceptance',
+            detail: `Initiator: ${initiator.slice(0, 6)}...${initiator.slice(-4)} • Counterparty: ${counterparty.slice(0, 6)}...${counterparty.slice(-4)}`,
+            penalty: 0,
             auto: true
           });
-          score -= 8;
         }
-      }
 
-      setChecks(results);
-      setLoyaltyScore(Math.max(0, score));
-      setLoading(false);
-      setPhase('committing');
+        // Check 7: Terms mismatch (if covenant prop has terms and contract has different terms)
+        if (covenant.terms && terms && covenant.terms !== terms) {
+          results.push({
+            id: 'terms',
+            type: 'warning',
+            title: 'Terms Hash Mismatch',
+            detail: 'The locally stored terms do not match the on-chain terms hash.',
+            penalty: 10,
+            auto: true
+          });
+          score -= 10;
+        }
+
+        setChecks(results);
+        setLoyaltyScore(Math.max(0, score));
+      } catch (err) {
+        console.error('Loyalty check error:', err);
+        setContractError(err?.message || 'Failed to read covenant state');
+      } finally {
+        setLoading(false);
+        setPhase('committing');
+      }
     };
 
-    const timer = setTimeout(runChecks, 400);
-    return () => clearTimeout(timer);
-  }, [covenant]);
+    runChecks();
+  }, [covenant, provider]);
 
   const getScoreColor = () => {
     if (loyaltyScore >= 90) return '#00f5a0';
@@ -136,7 +223,7 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
   const handleFileDispute = () => {
     if (onChallenge) {
       onChallenge({
-        covenantId: covenant.id,
+        covenantId: covenant.id || covenant.address,
         breaches: checks.filter(c => c.type === 'breach' || c.type === 'warning'),
         loyaltyScore,
         reason: selectedBreach ? selectedBreach.detail : 'Loyalty challenge initiated due to detected breaches.'
@@ -147,9 +234,10 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
 
   const hasActionableBreach = checks.some(c => c.type === 'breach' || c.type === 'warning');
 
-  // Generate commit hash from scan results (simulating blockchain commitment)
+  // Generate commit hash from scan results
   const generateCommitHash = () => {
-    const data = `${covenant.id}-${loyaltyScore}-${Date.now()}`;
+    const id = covenant?.address || covenant?.id || 'unknown';
+    const data = `${id}-${loyaltyScore}-${Date.now()}`;
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
@@ -177,7 +265,7 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
         <div className="vlc-header">
           <div>
             <h3>⚔️ Vow Loyalty Test</h3>
-            <p>Covenant #{covenant.id} • {covenant.title}</p>
+            <p>Covenant #{covenant.id || covenant.address} • {covenant.title}</p>
             {phase !== 'scanning' && phase !== 'committing' && (
               <span className="vlc-phase-badge">{phase.toUpperCase()}</span>
             )}
@@ -242,6 +330,12 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
                 </span>
               </div>
             </div>
+
+            {contractError && (
+              <div style={{ color: '#ff4757', marginBottom: '16px', padding: '12px', background: 'rgba(255,71,87,0.1)', borderRadius: '8px' }}>
+                {contractError}
+              </div>
+            )}
 
             <div className="vlc-checks">
               {checks.length === 0 ? (

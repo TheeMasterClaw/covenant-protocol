@@ -16,7 +16,17 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
 
     WEB3_RPC_URL: str = ""
+    COVENANT_RPC_URL: str = "https://testrpc.xlayer.tech"
     CHAIN_ID: int = 1
+
+    AGENT_REGISTRY_ADDRESS: str = ""
+    COVENANT_FACTORY_ADDRESS: str = ""
+    TASK_MARKET_ADDRESS: str = ""
+    REPUTATION_STAKE_ADDRESS: str = ""
+    REPUTATION_AGGREGATOR_ADDRESS: str = ""
+    AUTONOMOUS_EXECUTOR_ADDRESS: str = ""
+
+    EXECUTOR_PRIVATE_KEY: str = ""
 
     SENTRY_DSN: str = ""
 
