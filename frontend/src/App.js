@@ -68,6 +68,57 @@ function MobileNav() {
   );
 }
 
+function ChainSelector() {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+  
+  const chains = [
+    { id: 196, name: 'X Layer', icon: '🔷', color: '#00D4AA' },
+    { id: 195, name: 'X Layer Test', icon: '🔹', color: '#7B2CBF' },
+    { id: 8453, name: 'Base', icon: '🔵', color: '#0052FF' },
+    { id: 42161, name: 'Arbitrum', icon: '🔶', color: '#28A0F0' },
+    { id: 10, name: 'Optimism', icon: '🔴', color: '#FF0420' },
+    { id: 137, name: 'Polygon', icon: '🟣', color: '#8247E5' },
+  ];
+  
+  const currentChain = chains.find(c => c.id === chainId) || chains[0];
+  
+  return (
+    <div className="chain-selector">
+      <button 
+        className="chain-btn"
+        onClick={() => setShowDropdown(!showDropdown)}
+        style={{ borderColor: currentChain.color }}
+      >
+        <span>{currentChain.icon}</span>
+        <span className="chain-name">{currentChain.name}</span>
+        <span>▼</span>
+      </button>
+      
+      {showDropdown && (
+        <div className="chain-dropdown">
+          {chains.map(chain => (
+            <button
+              key={chain.id}
+              className={`chain-option ${chain.id === chainId ? 'active' : ''}`}
+              onClick={() => {
+                switchChain({ chainId: chain.id });
+                setShowDropdown(false);
+              }}
+              style={{ '--chain-color': chain.color }}
+            >
+              <span>{chain.icon}</span>
+              <span>{chain.name}</span>
+              {chain.id === chainId && <span>✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AppContent() {
   const [provider, setProvider] = useState(null);
   const [contracts, setContracts] = useState({});
@@ -256,6 +307,7 @@ function Header({ isConnected, isWrongNetwork, onSwitchNetwork, themeToggle }) {
       </nav>
       
       <div className="header-actions">
+        <ChainSelector />
         {themeToggle}
         {isWrongNetwork ? (
           <button 
@@ -434,6 +486,23 @@ function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty 
                   onClick={() => onTestLoyalty && onTestLoyalty(covenant)}
                 >
                   ⚔️ Test Loyalty
+                </button>
+                <button 
+                  className="share-btn"
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: `COVENANT #${covenant.id}`,
+                        text: `Check out this covenant: ${covenant.title}`,
+                        url: `${window.location.origin}/covenants?id=${covenant.id}`
+                      });
+                    } else {
+                      navigator.clipboard.writeText(`${window.location.origin}/covenants?id=${covenant.id}`);
+                      alert('Link copied to clipboard!');
+                    }
+                  }}
+                >
+                  🔗 Share
                 </button>
               </div>
             </motion.div>
@@ -640,6 +709,23 @@ function Covenants({ contracts, account, onTestLoyalty }) {
                     ⚔️ Test Loyalty
                   </button>
                 )}
+                <button 
+                  className="share-btn"
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: `COVENANT #${covenant.id}`,
+                        text: `Check out this covenant: ${covenant.title}`,
+                        url: `${window.location.origin}/covenants?id=${covenant.id}`
+                      });
+                    } else {
+                      navigator.clipboard.writeText(`${window.location.origin}/covenants?id=${covenant.id}`);
+                      alert('Link copied to clipboard!');
+                    }
+                  }}
+                >
+                  🔗 Share
+                </button>
               </div>
             </motion.div>
           ))

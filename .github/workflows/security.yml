@@ -1,0 +1,231 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ main, develop, "release/*" ]
+    paths:
+      - 'contracts-v2/**'
+      - '.github/workflows/security.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts-v2/**'
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  # ==========================================
+  # STATIC ANALYSIS WITH SLITHER
+  # ==========================================
+  slither:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.3.2
+        id: slither
+        with:
+          target: 'contracts-v2'
+          solc-version: '0.8.24'
+          node-version: '20'
+          fail-on: 'high'
+          slither-config: 'security-tools/slither.config.json'
+          sarif: 'slither-report.sarif'
+          ignore-compile: true
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: slither-report.sarif
+          category: slither
+
+      - name: Upload Slither Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: slither-report
+          path: slither-report.sarif
+
+  # ==========================================
+  # FUZZING WITH ECHIDNA
+  # ==========================================
+  echidna:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Echidna
+        run: |
+          wget https://github.com/crytic/echidna/releases/download/v2.2.3/echidna-2.2.3-x86_64-linux.tar.gz
+          tar -xzf echidna-2.2.3-x86_64-linux.tar.gz
+          sudo mv echidna /usr/local/bin/
+
+      - name: Run Echidna Fuzzing
+        run: |
+          echidna testing/foundry/test/fuzz/TaskMarketFuzz.t.sol \
+            --contract TaskMarketFuzzTest \
+            --config security-tools/echidna-config.yml \
+            --test-mode property \
+            --test-limit 50000 \
+            --format text \
+            > echidna-report.txt 2>&1 || true
+          cat echidna-report.txt
+
+      - name: Upload Echidna Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: echidna-report
+          path: echidna-report.txt
+
+  # ==========================================
+  # UNIT TESTS
+  # ==========================================
+  foundry-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build contracts
+        run: forge build --sizes
+
+      - name: Run unit tests
+        run: |
+          forge test --match-path "test/unit/**/*.t.sol" \
+            --fuzz-runs 10000 \
+            --gas-report \
+            -vvv
+        working-directory: testing/foundry
+
+      - name: Run invariant tests
+        run: |
+          forge test --match-path "test/invariant/**/*.t.sol" \
+            --fuzz-runs 10000 \
+            -vvv
+        working-directory: testing/foundry
+
+      - name: Generate coverage report
+        run: |
+          forge coverage --report lcov --report summary
+        working-directory: testing/foundry
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./testing/foundry/lcov.info
+          fail_ci_if_error: false
+
+  # ==========================================
+  # FORMAL VERIFICATION (Certora)
+  # ==========================================
+  certora:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Certora CLI
+        run: pip install certora-cli
+
+      - name: Verify ReputationStake
+        env:
+          CERTORAKEY: ${{ secrets.CERTORAKEY }}
+        run: |
+          certoraRun contracts-v2/reputation/ReputationStake.sol \
+            --verify ReputationStake:security-tools/certora-specs/ReputationStake.spec \
+            --optimistic_loop \
+            --rule_sanity \
+            --msg "ReputationStake verification" \
+            --solc solc8.24
+        continue-on-error: true
+
+      - name: Verify TaskMarket
+        env:
+          CERTORAKEY: ${{ secrets.CERTORAKEY }}
+        run: |
+          certoraRun contracts-v2/task/TaskMarket.sol \
+            --verify TaskMarket:security-tools/certora-specs/TaskMarket.spec \
+            --optimistic_loop \
+            --rule_sanity \
+            --msg "TaskMarket verification" \
+            --solc solc8.24
+        continue-on-error: true
+
+  # ==========================================
+  # SECURITY SUMMARY
+  # ==========================================
+  security-summary:
+    needs: [slither, foundry-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Security Check Summary
+        run: |
+          echo "## Security Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Slither Static Analysis | ${{ needs.slither.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Foundry Unit Tests | ${{ needs.foundry-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Echidna Fuzzing | ${{ needs.echidna.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All critical and high severity findings must be resolved before deployment." >> $GITHUB_STEP_SUMMARY

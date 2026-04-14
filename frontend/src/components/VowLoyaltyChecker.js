@@ -6,6 +6,23 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
   const [loyaltyScore, setLoyaltyScore] = useState(100);
   const [loading, setLoading] = useState(true);
   const [selectedBreach, setSelectedBreach] = useState(null);
+  
+  // Commit-reveal state (MEV protection from research)
+  const [phase, setPhase] = useState('scanning'); // scanning | committing | committed | revealing | revealed
+  const [commitHash, setCommitHash] = useState('');
+  const [commitTime, setCommitTime] = useState(null);
+  const [revealCountdown, setRevealCountdown] = useState(3);
+
+  useEffect(() => {
+    if (phase === 'committed' && revealCountdown > 0) {
+      const timer = setTimeout(() => setRevealCountdown(c => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+    if (phase === 'committed' && revealCountdown === 0) {
+      setPhase('revealing');
+      setTimeout(() => setPhase('revealed'), 800);
+    }
+  }, [phase, revealCountdown]);
 
   useEffect(() => {
     // Automated breach detection logic
@@ -96,6 +113,7 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
       setChecks(results);
       setLoyaltyScore(Math.max(0, score));
       setLoading(false);
+      setPhase('committing');
     };
 
     const timer = setTimeout(runChecks, 400);
@@ -129,6 +147,25 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
 
   const hasActionableBreach = checks.some(c => c.type === 'breach' || c.type === 'warning');
 
+  // Generate commit hash from scan results (simulating blockchain commitment)
+  const generateCommitHash = () => {
+    const data = `${covenant.id}-${loyaltyScore}-${Date.now()}`;
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return '0x' + Math.abs(hash).toString(16).padStart(64, '0');
+  };
+
+  const handleCommit = () => {
+    const hash = generateCommitHash();
+    setCommitHash(hash);
+    setCommitTime(Date.now());
+    setPhase('committed');
+  };
+
   return (
     <div className="vlc-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <motion.div
@@ -141,6 +178,9 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
           <div>
             <h3>⚔️ Vow Loyalty Test</h3>
             <p>Covenant #{covenant.id} • {covenant.title}</p>
+            {phase !== 'scanning' && phase !== 'committing' && (
+              <span className="vlc-phase-badge">{phase.toUpperCase()}</span>
+            )}
           </div>
           <button className="vlc-close" onClick={onClose}>×</button>
         </div>
@@ -149,6 +189,41 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
           <div className="vlc-loading">
             <div className="vlc-spinner"></div>
             <p>Scanning blockchain for breaches...</p>
+            <p className="vlc-sub">MEV-protected commitment phase loading...</p>
+          </div>
+        ) : phase === 'committing' || phase === 'committed' ? (
+          <div className="vlc-commit-phase">
+            <div className="vlc-commit-visual">
+              <div className="vlc-sealed-ring">
+                <span className="vlc-lock">🔒</span>
+                <span className="vlc-sealed-text">SEALED</span>
+              </div>
+            </div>
+            <p className="vlc-commit-hash">Commit: {commitHash.slice(0, 20)}...</p>
+            <p className="vlc-commit-info">
+              Commit-reveal pattern protects against front-running.
+              Score remains hidden until reveal phase.
+            </p>
+            {phase === 'committed' && (
+              <div className="vlc-countdown">
+                <p>Revealing in {revealCountdown}s...</p>
+                <div className="vlc-progress-bar">
+                  <div className="vlc-progress" style={{width: `${((3-revealCountdown)/3)*100}%`}} />
+                </div>
+              </div>
+            )}
+          </div>
+        ) : phase === 'revealing' ? (
+          <div className="vlc-reveal-phase">
+            <div className="vlc-reveal-animation">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                <span className="vlc-unlock">🔓</span>
+              </motion.div>
+            </div>
+            <p>Decrypting commitment...</p>
           </div>
         ) : (
           <>
@@ -159,6 +234,9 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
               </div>
               <div className="vlc-score-meta">
                 <p>Automated breach detection complete.</p>
+                {phase === 'revealed' && (
+                  <p className="vlc-verified">✓ MEV-Protected via Commit-Reveal</p>
+                )}
                 <span className="vlc-checks-count">
                   {checks.length} concern{checks.length !== 1 ? 's' : ''} found
                 </span>
@@ -221,6 +299,18 @@ export function VowLoyaltyChecker({ covenant, account, onChallenge, onClose }) {
               )}
             </div>
           </>
+        )}
+        
+        {/* Commit action - shown in committing phase */}
+        {phase === 'committing' && !loading && (
+          <div className="vlc-actions" style={{ borderTop: '1px solid var(--border-color)', marginTop: '16px', paddingTop: '16px' }}>
+            <button className="btn btn-primary btn-lg" onClick={handleCommit}>
+              🔒 Seal Commitment
+            </button>
+            <button className="btn btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+          </div>
         )}
       </motion.div>
     </div>

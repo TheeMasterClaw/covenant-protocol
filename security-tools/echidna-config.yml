@@ -1,0 +1,32 @@
+# Echidna Configuration for COVENANT Protocol
+# 2025 Best Practices for Agent Coordination Protocols
+
+coverage: true
+displayCoverage: true
+corpusDir: "echidna-corpus"
+
+deployer: "0x10000"
+sender: ["0x10000", "0x20000", "0x30000", "0x40000"]
+
+# Gas settings
+propMaxGas: 8000030
+propMaxGasPrice: 100000000000
+propMaxValue: 100000000000000000000  # 100 ETH
+testMaxGas: 8000030
+testMaxGasPrice: 100000000000
+testMaxValue: 100000000000000000000
+
+# Fuzzing parameters
+seqLen: 100
+testLimit: 100000
+shrinkLimit: 5000
+maxValue: 100000000000000000000
+
+# Time-based testing (for deadline testing)
+testMode: property
+
+# Crytic integration
+cryticArgs: ["--compile-force-framework", "hardhat"]
+
+# Formatting
+format: text

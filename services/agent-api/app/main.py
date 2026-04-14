@@ -6,8 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.api import agents, coordination, health, tasks
+from app.api import reputation, execution, disputes
 from core.registry import AgentRegistry
 from core.coordinator import AgentCoordinator
+from core.execution_engine import ExecutionEngine
+from core.dispute_engine import DisputeEngine
 from core.database import init_db
 
 if settings.SENTRY_DSN:
@@ -19,13 +22,15 @@ async def lifespan(app: FastAPI):
     await init_db()
     app.state.registry = AgentRegistry()
     app.state.coordinator = AgentCoordinator(app.state.registry)
+    app.state.execution_engine = ExecutionEngine(app.state.registry, app.state.coordinator)
+    app.state.dispute_engine = DisputeEngine(app.state.registry)
     yield
 
 
 app = FastAPI(
     title="COVENANT Agent API",
     description="AI Agent Orchestrator for COVENANT Protocol",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -37,16 +42,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Core routes
 app.include_router(health.router, tags=["health"])
 app.include_router(agents.router, prefix="/agents", tags=["agents"])
 app.include_router(coordination.router, prefix="/coordinations", tags=["coordination"])
 app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+
+# AI Framework integration routes
+app.include_router(reputation.router, prefix="/reputation", tags=["reputation"])
+app.include_router(execution.router, prefix="/execution", tags=["execution"])
+app.include_router(disputes.router, prefix="/disputes", tags=["disputes"])
 
 
 @app.get("/")
 async def root():
     return {
         "name": "COVENANT Agent API",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "docs": "/docs",
+        "features": [
+            "agent-registry",
+            "task-coordination",
+            "reputation-verification",
+            "autonomous-execution",
+            "ai-dispute-resolution",
+        ],
+        "integrations": [
+            "elizaos",
+            "autonolas",
+            "fetch-ai",
+            "bittensor",
+            "morpheus",
+        ],
     }

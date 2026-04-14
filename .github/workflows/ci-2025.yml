@@ -1,0 +1,115 @@
+name: CI 2025
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.3.6
+      
+      - name: Check formatting
+        run: forge fmt --check
+      
+      - name: Run solhint
+        run: |
+          npm ci --legacy-peer-deps
+          npx solhint 'contracts-v2/**/*.sol'
+
+  test-foundry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.3.6
+      
+      - name: Run Forge build
+        run: forge build
+        env:
+          FOUNDRY_PROFILE: ci
+      
+      - name: Run Forge tests
+        run: forge test --isolate -vvv
+        env:
+          FOUNDRY_PROFILE: ci
+      
+      - name: Check gas snapshots
+        run: forge snapshot --check
+        continue-on-error: true
+
+  test-hardhat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      
+      - name: Compile contracts
+        run: npx hardhat compile
+      
+      - name: Run Hardhat tests
+        run: npx hardhat test
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      
+      - name: Run coverage
+        run: forge coverage --report lcov
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./lcov.info
+          fail_ci_if_error: false
+
+  sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Install dependencies
+        run: |
+          npm ci --legacy-peer-deps
+          cd sdk/typescript && npm ci
+      
+      - name: Build SDK
+        run: cd sdk/typescript && npm run build
+      
+      - name: Type check SDK
+        run: cd sdk/typescript && npx tsc --noEmit

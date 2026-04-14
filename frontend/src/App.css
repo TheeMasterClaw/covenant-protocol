@@ -2660,6 +2660,237 @@ textarea.form-input {
   transform: translateY(-1px);
 }
 
+/* Chain Selector */
+.chain-selector {
+  position: relative;
+}
+
+.chain-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.chain-btn:hover {
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+
+.chain-name {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .chain-name {
+    display: inline;
+  }
+}
+
+.chain-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px;
+  min-width: 180px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+
+.chain-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chain-option:hover {
+  background: var(--bg-tertiary);
+}
+
+.chain-option.active {
+  background: rgba(0, 212, 255, 0.1);
+  border-left: 3px solid var(--chain-color, var(--accent-primary));
+}
+
+/* Share Button */
+.share-btn {
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.share-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* Vow Loyalty Checker - Commit-Reveal Phase */
+.vlc-phase-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  background: rgba(0, 212, 255, 0.15);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-primary);
+  letter-spacing: 1px;
+}
+
+.vlc-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.vlc-commit-phase {
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.vlc-commit-visual {
+  margin-bottom: 24px;
+}
+
+.vlc-sealed-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    var(--accent-primary) 0%,
+    #7b2cbf 50%,
+    var(--accent-primary) 100%
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  position: relative;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.6); }
+}
+
+.vlc-sealed-ring::before {
+  content: '';
+  position: absolute;
+  width: 104px;
+  height: 104px;
+  background: var(--bg-secondary);
+  border-radius: 50%;
+}
+
+.vlc-lock {
+  font-size: 36px;
+  position: relative;
+  z-index: 1;
+}
+
+.vlc-sealed-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-primary);
+  position: relative;
+  z-index: 1;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+.vlc-commit-hash {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  word-break: break-all;
+}
+
+.vlc-commit-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.vlc-countdown {
+  margin-top: 16px;
+}
+
+.vlc-countdown p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.vlc-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.vlc-progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-primary), #7b2cbf);
+  transition: width 1s ease;
+}
+
+.vlc-reveal-phase {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.vlc-reveal-animation {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.vlc-unlock {
+  display: inline-block;
+}
+
+.vlc-verified {
+  color: var(--accent-success);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 /* Footer */
 .footer {
   background: var(--bg-secondary);

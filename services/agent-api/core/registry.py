@@ -28,8 +28,8 @@ class Agent:
         self.name = name
         self.agent_type = agent_type
         self.description = description
-        self.capabilities = capabilities
-        self.config = config
+        self.capabilities = capabilities or []
+        self.config = config or {}
         self.owner = owner.lower()
         self.active = True
         self.status = "idle"
@@ -38,6 +38,9 @@ class Agent:
         self.last_heartbeat = None
         self.total_tasks = 0
         self.successful_tasks = 0
+        self.external_ids: Dict[str, str] = {}  # platform -> external_id
+        self.wallet_address: Optional[str] = None
+        self.reputation_score: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -54,9 +57,10 @@ class Agent:
             "updated_at": self.updated_at.isoformat(),
             "last_heartbeat": self.last_heartbeat.isoformat() if self.last_heartbeat else None,
             "total_tasks": self.total_tasks,
-            "success_rate": (
-                self.successful_tasks / max(self.total_tasks, 1)
-            ),
+            "success_rate": self.successful_tasks / max(self.total_tasks, 1),
+            "external_ids": self.external_ids,
+            "wallet_address": self.wallet_address,
+            "reputation_score": self.reputation_score,
         }
 
 
@@ -126,3 +130,9 @@ class AgentRegistry:
             if any(cap in agent.capabilities for cap in capabilities):
                 results.append(agent.to_dict())
         return results
+
+    def find_by_external_id(self, platform: str, external_id: str) -> Optional[Dict[str, Any]]:
+        for agent in self._agents.values():
+            if agent.external_ids.get(platform) == external_id:
+                return agent.to_dict()
+        return None

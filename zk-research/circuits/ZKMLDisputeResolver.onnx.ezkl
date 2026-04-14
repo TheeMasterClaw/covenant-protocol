@@ -1,0 +1,38 @@
+# EZKL Configuration for Dispute Evidence Classification
+# This is a configuration file for EZKL which generates ZK proofs for ONNX models
+
+{
+  "model_path": "dispute_classifier.onnx",
+  "circuit_settings": {
+    "input_scale": 7,
+    "param_scale": 7,
+    "scale_rebase_multiplier": 1,
+    "bits": 16,
+    "logrows": 17,
+    "num_inner_cols": 2
+  },
+  "input_data": {
+    "input": "evidence_embedding.json"
+  },
+  "output_data": {
+    "output": "verdict_probabilities.json"
+  },
+  "public_inputs": [
+    "model_hash",
+    "evidence_commitment", 
+    "output_commitment",
+    "min_confidence"
+  ],
+  "proof_type": "single",
+  "commitment": "kzg"
+}
+
+# Evidence embedding example (evidence_embedding.json):
+# {
+#   "input": [0.12, -0.34, 0.56, ..., 0.89]  # 768-dim vector from BERT
+# }
+
+# Verdict probabilities example (verdict_probabilities.json):
+# {
+#   "output": [0.05, 0.75, 0.15, 0.05]  # [UNDECIDED, PLAINTIFF, DEFENDANT, SETTLEMENT]
+# }
