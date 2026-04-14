@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "../../../contracts-v2/tokenomics/slashing/CovenantSlashing.sol";
-import "../../../testing/foundry/mocks/MockERC20.sol";
+import "mocks/MockERC20.sol";
 
 contract CovenantSlashingTest is Test {
     CovenantSlashing public slashing;

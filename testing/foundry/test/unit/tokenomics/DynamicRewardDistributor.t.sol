@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "../../../contracts-v2/tokenomics/dynamic/DynamicRewardDistributor.sol";
-import "../../../testing/foundry/mocks/MockERC20.sol";
+import "mocks/MockERC20.sol";
 
 contract DynamicRewardDistributorTest is Test {
     DynamicRewardDistributor public distributor;
