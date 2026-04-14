@@ -89,13 +89,13 @@ contract CovenantInvariants is DeploymentFixtures {
     }
     function invariant_RegistryCovenantIdOneIsValidOrZero() public view {
         if (registry.totalCovenants() >= 1) {
-            assertTrue(registry.covenantById(1) != address(0));
+            assertTrue(registry.getCovenant(1) != address(0));
         }
     }
     function invariant_RegistryCovenantIdSequential() public view {
         uint256 total = registry.totalCovenants();
         for (uint256 i = 1; i < total; i++) {
-            assertTrue(registry.covenantById(i) != address(0));
+            assertTrue(registry.getCovenant(i) != address(0));
         }
     }
     function invariant_TaskMarketTaskStatusInRange() public view {

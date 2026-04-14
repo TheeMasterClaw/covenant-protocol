@@ -3,6 +3,9 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {DeploymentFixtures} from "../../fixtures/DeploymentFixtures.sol";
+import {ITaskMarket} from "../../../../contracts-v2/interfaces/ITaskMarket.sol";
+import {ICovenantGovernor} from "../../../../contracts-v2/interfaces/ICovenantGovernor.sol";
+import {CovenantImplementation} from "../../../../contracts-v2/core/CovenantImplementation.sol";
 
 contract TaskMarketFuzzTest is DeploymentFixtures {
     function setUp() public override {
@@ -19,7 +22,7 @@ contract TaskMarketFuzzTest is DeploymentFixtures {
         vm.deal(alice, reward);
         taskMarket.createTask{value: reward}(covenantId, reward, address(0), deadline, metadata);
         
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.covenantId, covenantId);
         assertEq(task.reward, reward);
         assertEq(task.deadline, deadline);
@@ -318,7 +321,7 @@ contract TaskMarketFuzzTest is DeploymentFixtures {
         vm.assume(depositAmount <= 100 ether);
         
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             creator,
             agent,
             duration,
@@ -330,7 +333,7 @@ contract TaskMarketFuzzTest is DeploymentFixtures {
         address proxy = factory.createCovenant(salt, initData);
         
         assertTrue(proxy != address(0));
-        assertEq(registry.covenantToId(proxy), registry.totalCovenants());
+        assertEq(registry.getCovenantId(proxy), registry.totalCovenants());
     }
     function testFuzz_CreateCovenantMultiple(uint256 count) public asOwner {
         vm.assume(count > 0 && count <= 50);
@@ -338,7 +341,7 @@ contract TaskMarketFuzzTest is DeploymentFixtures {
         for (uint256 i = 0; i < count; i++) {
             bytes32 salt = keccak256(abi.encode(i));
             bytes memory initData = abi.encodeWithSelector(
-                CovenantImplementation(address(0)).initialize.selector,
+                CovenantImplementation(payable(address(0))).initialize.selector,
                 alice,
                 bob,
                 30 days,
@@ -377,7 +380,7 @@ contract TaskMarketFuzzTest is DeploymentFixtures {
             vm.prank(alice);
             governor.castVote(pid, support);
             
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             if (support == 0) assertEq(p.againstVotes, 100);
             else if (support == 1) assertEq(p.forVotes, 100);
             else assertEq(p.abstainVotes, 100);

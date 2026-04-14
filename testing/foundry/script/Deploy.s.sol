@@ -5,10 +5,10 @@ import "forge-std/Script.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {AgentRegistry} from "../../contracts/AgentRegistry.sol";
 import {AgentCovenant} from "../../contracts/AgentCovenant.sol";
-import {OldCovenantFactory} from "../../contracts/CovenantFactory.sol";
-import {OldReputationStake} from "../../contracts/ReputationStake.sol";
-import {OldTaskMarket} from "../../contracts/TaskMarket.sol";
-import {OldDisputeDAO} from "../../contracts/DisputeDAO.sol";
+import {CovenantFactory as OldCovenantFactory} from "../../contracts/CovenantFactory.sol";
+import {ReputationStake as OldReputationStake} from "../../contracts/ReputationStake.sol";
+import {TaskMarket as OldTaskMarket} from "../../contracts/TaskMarket.sol";
+import {DisputeDAO as OldDisputeDAO} from "../../contracts/core/DisputeDAO.sol";
 import {CovenantFactory} from "../../contracts-v2/core/CovenantFactory.sol";
 import {CovenantRegistry} from "../../contracts-v2/core/CovenantRegistry.sol";
 import {CovenantImplementation} from "../../contracts-v2/core/CovenantImplementation.sol";
@@ -30,24 +30,40 @@ contract DeployScript is Script {
 
         // Deploy v1 contracts
         AgentRegistry agentRegistry = new AgentRegistry();
-        AgentCovenant agentCovenant = new AgentCovenant(address(agentRegistry));
-        OldCovenantFactory oldFactory = new OldCovenantFactory();
-        OldReputationStake oldStake = new OldReputationStake(address(token));
-        OldTaskMarket oldTaskMarket = new OldTaskMarket();
-        OldDisputeDAO oldDisputeDAO = new OldDisputeDAO(address(oldTaskMarket));
+        AgentCovenant agentCovenant = new AgentCovenant(
+            deployer,
+            address(0x1234),
+            keccak256("TEST"),
+            "ipfs://test",
+            7 days,
+            0.01 ether,
+            deployer,
+            100
+        );
+        OldCovenantFactory oldFactory = new OldCovenantFactory(deployer);
+        OldReputationStake oldStake = new OldReputationStake(address(token), deployer);
+        OldTaskMarket oldTaskMarket = new OldTaskMarket(deployer);
+        OldDisputeDAO oldDisputeDAO = new OldDisputeDAO(address(token), address(oldStake));
 
         // Deploy v2 contracts
-        CovenantFactory factory = new CovenantFactory(deployer);
-        CovenantRegistry registry = new CovenantRegistry();
-        CovenantImplementation implementation = new CovenantImplementation(address(factory), address(registry));
+        // Break circular dependency: CovenantFactory needs registry, CovenantRegistry needs factory
+        // Predict factory address (will be deployed after implementation and registry)
+        uint256 factoryNonce = vm.getNonce(deployer) + 3;
+        address predictedFactory = vm.computeCreateAddress(deployer, factoryNonce);
+
+        CovenantImplementation implementation = new CovenantImplementation();
+        CovenantRegistry registry = new CovenantRegistry(predictedFactory);
+        CovenantFactory factory = new CovenantFactory(address(implementation), address(registry));
+        
+        // Sanity check prediction
+        require(address(factory) == predictedFactory, "Factory address prediction mismatch");
+
         TaskMarket taskMarket = new TaskMarket();
         ReputationStake reputationStake = new ReputationStake(address(token));
         COVEN covenToken = new COVEN("COVEN Token", "COVEN", 1_000_000_000 ether, 500);
         CovenantGovernor governor = new CovenantGovernor(address(covenToken), 1000 ether, 1 days, 7 days);
 
         // Wire v2 contracts
-        factory.setRegistry(address(registry));
-        factory.setImplementation(address(implementation));
         registry.setFactory(address(factory));
         covenToken.setStakingContract(address(reputationStake));
 

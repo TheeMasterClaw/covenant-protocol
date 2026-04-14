@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import {DeploymentFixtures} from "../../../fixtures/DeploymentFixtures.sol";
 import {ReputationStake} from "../../../../contracts-v2/reputation/ReputationStake.sol";
+import {IReputationStake} from "../../../../contracts-v2/interfaces/IReputationStake.sol";
 
 contract ReputationStakeTest is DeploymentFixtures {
     function setUp() public override {
@@ -79,7 +80,7 @@ contract ReputationStakeTest is DeploymentFixtures {
     function test_Stake_EmitsEvent() public asAlice {
         token.approve(address(reputationStake), 1 ether);
         vm.expectEmit(true, true, true, false);
-        emit ReputationStake.Staked(alice, 1 ether, block.timestamp + 7 days);
+        emit IReputationStake.Staked(alice, 1 ether, block.timestamp + 7 days);
         reputationStake.stake(1 ether, 7 days);
     }
     function test_Stake_StoresStakeInfo() public asAlice {
@@ -91,7 +92,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         assertEq(info.unlockTime, block.timestamp + 7 days);
     }
     function test_Stake_ZeroAmountReverts() public asAlice {
-        vm.expectRevert(ReputationStake.InvalidAmount.selector);
+        vm.expectRevert(IReputationStake.InvalidAmount.selector);
         reputationStake.stake(0, 7 days);
     }
     function test_Stake_UpdatesTotalStaked() public asAlice {
@@ -183,20 +184,20 @@ contract ReputationStakeTest is DeploymentFixtures {
     function test_Stake_EventContainsCorrectAmount() public asAlice {
         token.approve(address(reputationStake), 5 ether);
         vm.expectEmit(true, true, true, false);
-        emit ReputationStake.Staked(alice, 5 ether, block.timestamp + 7 days);
+        emit IReputationStake.Staked(alice, 5 ether, block.timestamp + 7 days);
         reputationStake.stake(5 ether, 7 days);
     }
     function test_Stake_EventContainsCorrectAccount() public asBob {
         token.approve(address(reputationStake), 1 ether);
         vm.expectEmit(true, true, true, false);
-        emit ReputationStake.Staked(bob, 1 ether, block.timestamp + 7 days);
+        emit IReputationStake.Staked(bob, 1 ether, block.timestamp + 7 days);
         reputationStake.stake(1 ether, 7 days);
     }
     function test_Stake_EventContainsCorrectUnlockTime() public asAlice {
         token.approve(address(reputationStake), 1 ether);
         uint256 unlockTime = block.timestamp + 30 days;
         vm.expectEmit(true, true, true, false);
-        emit ReputationStake.Staked(alice, 1 ether, unlockTime);
+        emit IReputationStake.Staked(alice, 1 ether, unlockTime);
         reputationStake.stake(1 ether, 30 days);
     }
     function test_Stake_10Stakes() public asAlice {
@@ -254,7 +255,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         token.approve(address(reputationStake), 1 ether);
         reputationStake.stake(1 ether, 0);
         vm.expectEmit(true, true, false, false);
-        emit ReputationStake.Unstaked(alice, 1 ether);
+        emit IReputationStake.Unstaked(alice, 1 ether);
         reputationStake.unstake(1 ether);
     }
     function test_Unstake_UpdatesTotalStaked() public asAlice {
@@ -273,13 +274,13 @@ contract ReputationStakeTest is DeploymentFixtures {
     function test_Unstake_InsufficientStakeReverts() public asAlice {
         token.approve(address(reputationStake), 1 ether);
         reputationStake.stake(1 ether, 0);
-        vm.expectRevert(ReputationStake.InsufficientStake.selector);
+        vm.expectRevert(IReputationStake.InsufficientStake.selector);
         reputationStake.unstake(2 ether);
     }
     function test_Unstake_StakeLockedReverts() public asAlice {
         token.approve(address(reputationStake), 1 ether);
         reputationStake.stake(1 ether, 7 days);
-        vm.expectRevert(ReputationStake.StakeLocked.selector);
+        vm.expectRevert(IReputationStake.StakeLocked.selector);
         reputationStake.unstake(1 ether);
     }
     function test_Unstake_PartialAmount() public asAlice {
@@ -340,14 +341,14 @@ contract ReputationStakeTest is DeploymentFixtures {
         token.approve(address(reputationStake), 5 ether);
         reputationStake.stake(5 ether, 0);
         vm.expectEmit(true, true, false, false);
-        emit ReputationStake.Unstaked(alice, 3 ether);
+        emit IReputationStake.Unstaked(alice, 3 ether);
         reputationStake.unstake(3 ether);
     }
     function test_Unstake_EventContainsCorrectAccount() public asBob {
         token.approve(address(reputationStake), 1 ether);
         reputationStake.stake(1 ether, 0);
         vm.expectEmit(true, true, false, false);
-        emit ReputationStake.Unstaked(bob, 1 ether);
+        emit IReputationStake.Unstaked(bob, 1 ether);
         reputationStake.unstake(1 ether);
     }
     function test_Unstake_ZeroAmountAllowed() public asAlice {
@@ -367,7 +368,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         token.approve(address(reputationStake), 1 ether);
         reputationStake.stake(1 ether, 7 days);
         vm.warp(block.timestamp + 7 days - 1);
-        vm.expectRevert(ReputationStake.StakeLocked.selector);
+        vm.expectRevert(IReputationStake.StakeLocked.selector);
         reputationStake.unstake(1 ether);
     }
     function test_Unstake_ContractBalanceDecreases() public asAlice {
@@ -381,14 +382,14 @@ contract ReputationStakeTest is DeploymentFixtures {
         token.approve(address(reputationStake), 1 ether);
         reputationStake.stake(1 ether, 0);
         reputationStake.unstake(1 ether);
-        vm.expectRevert(ReputationStake.InsufficientStake.selector);
+        vm.expectRevert(IReputationStake.InsufficientStake.selector);
         reputationStake.unstake(1 ether);
     }
     function test_Unstake_AlreadyUnstakedReverts() public asAlice {
         token.approve(address(reputationStake), 1 ether);
         reputationStake.stake(1 ether, 0);
         reputationStake.unstake(1 ether);
-        vm.expectRevert(ReputationStake.InsufficientStake.selector);
+        vm.expectRevert(IReputationStake.InsufficientStake.selector);
         reputationStake.unstake(1 ether);
     }
     function test_Unstake_10Unstakes() public asAlice {
@@ -400,7 +401,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         assertEq(reputationStake.getStakeInfo(alice).amount, 0);
     }
     function test_Unstake_MaxUint256AmountReverts() public asAlice {
-        vm.expectRevert(ReputationStake.InsufficientStake.selector);
+        vm.expectRevert(IReputationStake.InsufficientStake.selector);
         reputationStake.unstake(type(uint256).max);
     }
 
@@ -419,7 +420,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         reputationStake.stake(1 ether, 0);
         vm.stopPrank();
         vm.expectEmit(true, true, true, false);
-        emit ReputationStake.Slashed(alice, 1 ether, keccak256("reason"));
+        emit IReputationStake.Slashed(alice, 1 ether, keccak256("reason"));
         reputationStake.slash(alice, 1 ether, keccak256("reason"));
     }
     function test_Slash_UpdatesTotalStaked() public asOwner {
@@ -444,7 +445,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         token.approve(address(reputationStake), 1 ether);
         reputationStake.stake(1 ether, 0);
         vm.stopPrank();
-        vm.expectRevert(ReputationStake.InsufficientStake.selector);
+        vm.expectRevert(IReputationStake.InsufficientStake.selector);
         reputationStake.slash(alice, 2 ether, keccak256("reason"));
     }
     function test_Slash_NonOwnerReverts() public {
@@ -502,7 +503,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         reputationStake.stake(1 ether, 0);
         vm.stopPrank();
         vm.expectEmit(true, true, true, false);
-        emit ReputationStake.Slashed(bob, 1 ether, keccak256("reason"));
+        emit IReputationStake.Slashed(bob, 1 ether, keccak256("reason"));
         reputationStake.slash(bob, 1 ether, keccak256("reason"));
     }
     function test_Slash_EventContainsCorrectAmount() public asOwner {
@@ -511,7 +512,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         reputationStake.stake(5 ether, 0);
         vm.stopPrank();
         vm.expectEmit(true, true, true, false);
-        emit ReputationStake.Slashed(alice, 3 ether, keccak256("reason"));
+        emit IReputationStake.Slashed(alice, 3 ether, keccak256("reason"));
         reputationStake.slash(alice, 3 ether, keccak256("reason"));
     }
     function test_Slash_EventContainsCorrectReason() public asOwner {
@@ -521,7 +522,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         vm.stopPrank();
         bytes32 reason = keccak256("bad behavior");
         vm.expectEmit(true, true, true, false);
-        emit ReputationStake.Slashed(alice, 1 ether, reason);
+        emit IReputationStake.Slashed(alice, 1 ether, reason);
         reputationStake.slash(alice, 1 ether, reason);
     }
     function test_Slash_ZeroAmountAllowed() public asOwner {
@@ -557,7 +558,7 @@ contract ReputationStakeTest is DeploymentFixtures {
         reputationStake.stake(1 ether, 0);
         vm.stopPrank();
         reputationStake.slash(alice, 1 ether, keccak256("reason"));
-        vm.expectRevert(ReputationStake.InsufficientStake.selector);
+        vm.expectRevert(IReputationStake.InsufficientStake.selector);
         reputationStake.slash(alice, 1 ether, keccak256("reason"));
     }
     function test_Slash_10Slashes() public asOwner {

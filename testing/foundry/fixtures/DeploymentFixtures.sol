@@ -111,26 +111,22 @@ contract DeploymentFixtures is Test {
     }
 
     modifier asOwner() {
-        vm.startPrank(owner);
+        vm.prank(owner);
         _;
-        vm.stopPrank();
     }
 
     modifier asAlice() {
-        vm.startPrank(alice);
+        vm.prank(alice);
         _;
-        vm.stopPrank();
     }
 
     modifier asBob() {
-        vm.startPrank(bob);
+        vm.prank(bob);
         _;
-        vm.stopPrank();
     }
 
     modifier asCarol() {
-        vm.startPrank(carol);
+        vm.prank(carol);
         _;
-        vm.stopPrank();
     }
 }

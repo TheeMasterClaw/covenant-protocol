@@ -16,7 +16,7 @@ contract DynamicRewardDistributorTest is Test {
     function setUp() public {
         vm.startPrank(owner);
         distributor = new DynamicRewardDistributor();
-        rewardToken = new MockERC20("Reward", "RWD");
+        rewardToken = new MockERC20("Reward", "RWD", 18);
         
         distributor.addTaskMarket(taskMarket);
         distributor.addTaskCategory("Development", 100e18, 100);

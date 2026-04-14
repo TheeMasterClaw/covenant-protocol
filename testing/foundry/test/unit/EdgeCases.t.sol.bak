@@ -3,6 +3,10 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {DeploymentFixtures} from "../../fixtures/DeploymentFixtures.sol";
+import {ReputationStake} from "../../../contracts-v2/reputation/ReputationStake.sol";
+import {CovenantGovernor} from "../../../contracts-v2/governance/CovenantGovernor.sol";
+import {CovenantImplementation} from "../../../contracts-v2/core/CovenantImplementation.sol";
+import {COVEN} from "../../../contracts-v2/tokenomics/COVEN.sol";
 
 contract EdgeCasesTest is DeploymentFixtures {
     function setUp() public override {
@@ -119,7 +123,7 @@ contract EdgeCasesTest is DeploymentFixtures {
     function test_MaxValues_DurationMax() public asOwner {
         bytes32 salt = keccak256("max");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             type(uint256).max,
@@ -128,7 +132,7 @@ contract EdgeCasesTest is DeploymentFixtures {
             bytes32(0)
         );
         factory.createCovenant(salt, initData);
-        assertEq(CovenantImplementation(registry.covenantById(1)).duration(), type(uint256).max);
+        assertEq(CovenantImplementation(registry.getCovenant(1)).duration(), type(uint256).max);
     }
     function test_MaxValues_QuorumMax() public {
         CovenantGovernor g = new CovenantGovernor(address(covenToken), type(uint256).max, 1 days, 7 days);
@@ -150,7 +154,7 @@ contract EdgeCasesTest is DeploymentFixtures {
     function test_MaxValues_CovenantDepositMax() public asOwner {
         bytes32 salt = keccak256("maxdep");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             30 days,
@@ -338,7 +342,7 @@ contract EdgeCasesTest is DeploymentFixtures {
     function test_Boundary_EmptyCovenantAfterDeadline() public asOwner {
         bytes32 salt = keccak256("empty");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             30 days,
@@ -353,7 +357,7 @@ contract EdgeCasesTest is DeploymentFixtures {
     function test_Boundary_FundedCovenantAfterDeadline() public asOwner {
         bytes32 salt = keccak256("funded");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             30 days,
@@ -402,7 +406,7 @@ contract EdgeCasesTest is DeploymentFixtures {
         vm.prank(alice);
         bytes32 salt = keccak256("newowner");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             30 days,
@@ -450,7 +454,7 @@ contract EdgeCasesTest is DeploymentFixtures {
     function test_AccessControl_CreatorNotCreatorReverts() public asOwner {
         bytes32 salt = keccak256("access");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             30 days,
@@ -466,7 +470,7 @@ contract EdgeCasesTest is DeploymentFixtures {
     function test_AccessControl_AgentNotAgentReverts() public asOwner {
         bytes32 salt = keccak256("access2");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             30 days,
@@ -659,7 +663,7 @@ contract EdgeCasesTest is DeploymentFixtures {
     function test_State_CovenantActiveToTerminated() public asOwner {
         bytes32 salt = keccak256("state");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             30 days,
@@ -676,7 +680,7 @@ contract EdgeCasesTest is DeploymentFixtures {
     function test_State_CovenantPendingToActive() public asOwner {
         bytes32 salt = keccak256("state2");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             30 days,
@@ -694,7 +698,7 @@ contract EdgeCasesTest is DeploymentFixtures {
     function test_State_CovenantActiveToExpired() public asOwner {
         bytes32 salt = keccak256("state3");
         bytes memory initData = abi.encodeWithSelector(
-            CovenantImplementation(address(0)).initialize.selector,
+            CovenantImplementation(payable(address(0))).initialize.selector,
             alice,
             bob,
             30 days,

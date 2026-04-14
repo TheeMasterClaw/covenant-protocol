@@ -4,6 +4,8 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import {DeploymentFixtures} from "../../../fixtures/DeploymentFixtures.sol";
 import {COVEN} from "../../../../contracts-v2/tokenomics/COVEN.sol";
+import {ICOVEN} from "../../../../contracts-v2/interfaces/ICOVEN.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract COVENTest is DeploymentFixtures {
     function setUp() public override {
@@ -87,7 +89,7 @@ contract COVENTest is DeploymentFixtures {
     function test_MintInflation_EmitsEvent() public asOwner {
         vm.warp(block.timestamp + 30 days + 1);
         vm.expectEmit(true, false, false, false);
-        emit COVEN.InflationMinted(0, block.timestamp);
+        emit ICOVEN.InflationMinted(0, block.timestamp);
         covenToken.mintInflation();
     }
     function test_MintInflation_UpdatesLastMintTime() public asOwner {
@@ -103,7 +105,7 @@ contract COVENTest is DeploymentFixtures {
     }
     function test_MintInflation_Before30DaysReverts() public asOwner {
         vm.warp(block.timestamp + 29 days);
-        vm.expectRevert(COVEN.InflationNotDue.selector);
+        vm.expectRevert(ICOVEN.InflationNotDue.selector);
         covenToken.mintInflation();
     }
     function test_MintInflation_AtMaxSupplyReverts() public asOwner {
@@ -114,7 +116,7 @@ contract COVENTest is DeploymentFixtures {
         vm.store(address(covenToken), bytes32(uint256(1)), bytes32(covenToken.totalSupply()));
         // Next mint should fail
         vm.warp(block.timestamp + 30 days + 1);
-        vm.expectRevert(COVEN.MaxSupplyReached.selector);
+        vm.expectRevert(ICOVEN.MaxSupplyReached.selector);
         covenToken.mintInflation();
     }
     function test_MintInflation_RecipientIsOwnerWhenNoStaking() public asOwner {
@@ -162,7 +164,7 @@ contract COVENTest is DeploymentFixtures {
     function test_MintInflation_ZeroAmountReverts() public asOwner {
         // When total supply is 0, inflation is 0
         vm.warp(block.timestamp + 30 days + 1);
-        vm.expectRevert(COVEN.InflationNotDue.selector);
+        vm.expectRevert(ICOVEN.InflationNotDue.selector);
         covenToken.mintInflation();
     }
     function test_MintInflation_ReturnsAmount() public asOwner {
@@ -183,25 +185,25 @@ contract COVENTest is DeploymentFixtures {
     }
     function test_MintInflation_Exact30Days() public asOwner {
         vm.warp(block.timestamp + 30 days);
-        vm.expectRevert(COVEN.InflationNotDue.selector);
+        vm.expectRevert(ICOVEN.InflationNotDue.selector);
         covenToken.mintInflation();
     }
     function test_MintInflation_OneSecondAfter30Days() public asOwner {
         vm.warp(block.timestamp + 30 days + 1);
         // When supply is 0, inflation is 0
-        vm.expectRevert(COVEN.InflationNotDue.selector);
+        vm.expectRevert(ICOVEN.InflationNotDue.selector);
         covenToken.mintInflation();
     }
     function test_MintInflation_EventContainsCorrectTimestamp() public asOwner {
         vm.warp(block.timestamp + 30 days + 1);
         vm.expectEmit(true, false, false, true);
-        emit COVEN.InflationMinted(0, block.timestamp);
+        emit ICOVEN.InflationMinted(0, block.timestamp);
         covenToken.mintInflation();
     }
     function test_MintInflation_EventContainsCorrectAmount() public asOwner {
         vm.warp(block.timestamp + 30 days + 1);
         vm.expectEmit(true, false, false, true);
-        emit COVEN.InflationMinted(0, block.timestamp);
+        emit ICOVEN.InflationMinted(0, block.timestamp);
         covenToken.mintInflation();
     }
     function test_MintInflation_UpdatesMultipleStateVars() public asOwner {
@@ -214,7 +216,7 @@ contract COVENTest is DeploymentFixtures {
     }
     function test_MintInflation_CanBeCalledByNonOwner() public {
         vm.warp(block.timestamp + 30 days + 1);
-        vm.expectRevert(COVEN.InflationNotDue.selector);
+        vm.expectRevert(ICOVEN.InflationNotDue.selector);
         covenToken.mintInflation();
     }
     function test_MintInflation_10Mints() public asOwner {
@@ -232,6 +234,7 @@ contract COVENTest is DeploymentFixtures {
 
     // ==================== BURN TESTS (20) ====================
     function test_Burn_ReducesBalance() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         uint256 balance = covenToken.balanceOf(owner);
         if (balance > 0) {
@@ -240,6 +243,7 @@ contract COVENTest is DeploymentFixtures {
         }
     }
     function test_Burn_ReducesTotalSupply() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         uint256 supply = covenToken.totalSupply();
         if (supply > 0) {
@@ -258,6 +262,7 @@ contract COVENTest is DeploymentFixtures {
         covenToken.burn(1 ether);
     }
     function test_Burn_FromEOA() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             uint256 before = covenToken.totalSupply();
@@ -266,6 +271,7 @@ contract COVENTest is DeploymentFixtures {
         }
     }
     function test_Burn_MultipleBurns() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) >= 10) {
             for (uint256 i = 0; i < 10; i++) {
@@ -274,14 +280,16 @@ contract COVENTest is DeploymentFixtures {
         }
     }
     function test_Burn_EmitsTransferEvent() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             vm.expectEmit(true, true, false, true);
-            emit COVEN.Transfer(owner, address(0), 1);
+            emit IERC20.Transfer(owner, address(0), 1);
             covenToken.burn(1);
         }
     }
     function test_Burn_ByAnyHolder() public {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         // Transfer to alice
         if (covenToken.balanceOf(owner) > 0) {
@@ -298,6 +306,7 @@ contract COVENTest is DeploymentFixtures {
     }
     function test_Burn_DoesNotAffectMaxSupply() public asOwner {
         uint256 maxSupply = covenToken.maxSupply();
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             covenToken.burn(1);
@@ -307,6 +316,7 @@ contract COVENTest is DeploymentFixtures {
 
     // ==================== BURN FROM TESTS (15) ====================
     function test_BurnFrom_ReducesAllowance() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             covenToken.approve(alice, 100);
@@ -316,6 +326,7 @@ contract COVENTest is DeploymentFixtures {
         }
     }
     function test_BurnFrom_ReducesBalance() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             covenToken.approve(alice, 100);
@@ -342,6 +353,7 @@ contract COVENTest is DeploymentFixtures {
         covenToken.burnFrom(owner, 0);
     }
     function test_BurnFrom_ExactAllowance() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             covenToken.approve(alice, 1);
@@ -351,6 +363,7 @@ contract COVENTest is DeploymentFixtures {
         }
     }
     function test_BurnFrom_MultipleBurns() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) >= 10) {
             covenToken.approve(alice, 10);
@@ -361,6 +374,7 @@ contract COVENTest is DeploymentFixtures {
         }
     }
     function test_BurnFrom_DifferentSpenders() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) >= 2) {
             covenToken.approve(alice, 1);
@@ -372,21 +386,23 @@ contract COVENTest is DeploymentFixtures {
         }
     }
     function test_BurnFrom_EmitsApprovalEvent() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             covenToken.approve(alice, 100);
             vm.expectEmit(true, true, false, true);
-            emit COVEN.Approval(owner, alice, 99);
+            emit IERC20.Approval(owner, alice, 99);
             vm.prank(alice);
             covenToken.burnFrom(owner, 1);
         }
     }
     function test_BurnFrom_EmitsTransferEvent() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             covenToken.approve(alice, 100);
             vm.expectEmit(true, true, false, true);
-            emit COVEN.Transfer(owner, address(0), 1);
+            emit IERC20.Transfer(owner, address(0), 1);
             vm.prank(alice);
             covenToken.burnFrom(owner, 1);
         }
@@ -399,7 +415,7 @@ contract COVENTest is DeploymentFixtures {
     }
     function test_SetStakingContract_EmitsEvent() public asOwner {
         vm.expectEmit(true, false, false, false);
-        emit COVEN.StakingContractUpdated(alice);
+        emit ICOVEN.StakingContractUpdated(alice);
         covenToken.setStakingContract(alice);
     }
     function test_SetStakingContract_NonOwnerReverts() public {
@@ -433,7 +449,7 @@ contract COVENTest is DeploymentFixtures {
     }
     function test_SetStakingContract_EventContainsCorrectAddress() public asOwner {
         vm.expectEmit(true, false, false, false);
-        emit COVEN.StakingContractUpdated(dave);
+        emit ICOVEN.StakingContractUpdated(dave);
         covenToken.setStakingContract(dave);
     }
     function test_SetStakingContract_SameAddressAllowed() public asOwner {
@@ -545,6 +561,7 @@ contract COVENTest is DeploymentFixtures {
 
     // ==================== ERC20 STANDARD TESTS (10) ====================
     function test_Transfer_ReducesSenderBalance() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             uint256 before = covenToken.balanceOf(owner);
@@ -553,6 +570,7 @@ contract COVENTest is DeploymentFixtures {
         }
     }
     function test_Transfer_IncreasesReceiverBalance() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             covenToken.transfer(alice, 1);
@@ -560,10 +578,11 @@ contract COVENTest is DeploymentFixtures {
         }
     }
     function test_Transfer_EmitsEvent() public asOwner {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             vm.expectEmit(true, true, false, true);
-            emit COVEN.Transfer(owner, alice, 1);
+            emit IERC20.Transfer(owner, alice, 1);
             covenToken.transfer(alice, 1);
         }
     }
@@ -577,10 +596,11 @@ contract COVENTest is DeploymentFixtures {
     }
     function test_Approve_EmitsEvent() public {
         vm.expectEmit(true, true, false, true);
-        emit COVEN.Approval(owner, alice, 100);
+        emit IERC20.Approval(owner, alice, 100);
         covenToken.approve(alice, 100);
     }
     function test_TransferFrom_UsesAllowance() public {
+        vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             covenToken.approve(alice, 100);

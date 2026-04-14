@@ -18,7 +18,7 @@ contract CovenantSlashingTest is Test {
     function setUp() public {
         vm.startPrank(owner);
         slashing = new CovenantSlashing(treasury);
-        stakeToken = new MockERC20("Stake", "STK");
+        stakeToken = new MockERC20("Stake", "STK", 18);
         slashing.addSlashInitiator(initiator);
         vm.stopPrank();
         
@@ -119,7 +119,7 @@ contract CovenantSlashingTest is Test {
         
         ISlashing.SlashRecord memory record = slashing.getSlashRecord(slashId);
         assertEq(record.severity, 1);
-        assertEq(record.category, ISlashing.SlashCategory.JUROR);
+        assertEq(uint256(record.category), uint256(ISlashing.SlashCategory.JUROR));
     }
     
     function testAppealAndReverse() public {

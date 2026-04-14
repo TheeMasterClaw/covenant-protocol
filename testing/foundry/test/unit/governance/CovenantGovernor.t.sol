@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import {DeploymentFixtures} from "../../../fixtures/DeploymentFixtures.sol";
 import {CovenantGovernor} from "../../../../contracts-v2/governance/CovenantGovernor.sol";
+import {ICovenantGovernor} from "../../../../contracts-v2/interfaces/ICovenantGovernor.sol";
 
 contract CovenantGovernorTest is DeploymentFixtures {
     function setUp() public override {
@@ -78,7 +79,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             vm.expectEmit(true, true, false, false);
-            emit CovenantGovernor.ProposalCreated(1, owner, "test proposal");
+            emit ICovenantGovernor.ProposalCreated(1, owner, "test proposal");
             governor.propose(alice, new bytes(0), "test proposal");
         }
     }
@@ -87,7 +88,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             governor.propose(alice, new bytes(0), "test proposal");
-            CovenantGovernor.Proposal memory p = governor.getProposal(1);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(1);
             assertEq(p.id, 1);
             assertEq(p.proposer, owner);
             assertEq(p.description, "test proposal");
@@ -96,14 +97,14 @@ contract CovenantGovernorTest is DeploymentFixtures {
     }
     function test_Propose_ZeroBalanceReverts() public {
         vm.prank(alice);
-        vm.expectRevert(CovenantGovernor.UnauthorizedProposer.selector);
+        vm.expectRevert(ICovenantGovernor.UnauthorizedProposer.selector);
         governor.propose(bob, new bytes(0), "test");
     }
     function test_Propose_ZeroTargetReverts() public asOwner {
         vm.warp(block.timestamp + 30 days + 1);
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
-            vm.expectRevert(CovenantGovernor.InvalidProposal.selector);
+            vm.expectRevert(ICovenantGovernor.InvalidProposal.selector);
             governor.propose(address(0), new bytes(0), "test");
         }
     }
@@ -130,7 +131,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             governor.propose(alice, new bytes(0), "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(1);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(1);
             assertEq(p.startTime, block.timestamp + 1 days);
         }
     }
@@ -139,7 +140,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             governor.propose(alice, new bytes(0), "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(1);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(1);
             assertEq(p.endTime, p.startTime + 7 days);
         }
     }
@@ -148,7 +149,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             governor.propose(alice, new bytes(0), "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(1);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(1);
             assertEq(p.forVotes, 0);
             assertEq(p.againstVotes, 0);
             assertEq(p.abstainVotes, 0);
@@ -159,7 +160,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             governor.propose(alice, new bytes(0), "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(1);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(1);
             assertEq(p.executed, false);
         }
     }
@@ -168,7 +169,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             governor.propose(alice, new bytes(0), "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(1);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(1);
             assertEq(p.canceled, false);
         }
     }
@@ -178,7 +179,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         if (covenToken.balanceOf(owner) > 0) {
             bytes memory callData = abi.encodeWithSelector(bytes4(keccak256("test()")));
             governor.propose(alice, callData, "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(1);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(1);
             assertEq(keccak256(p.callData), keccak256(callData));
         }
     }
@@ -187,7 +188,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             vm.expectEmit(true, true, false, false);
-            emit CovenantGovernor.ProposalCreated(1, owner, "test");
+            emit ICovenantGovernor.ProposalCreated(1, owner, "test");
             governor.propose(alice, new bytes(0), "test");
         }
     }
@@ -196,7 +197,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             vm.expectEmit(true, true, false, false);
-            emit CovenantGovernor.ProposalCreated(1, owner, "test");
+            emit ICovenantGovernor.ProposalCreated(1, owner, "test");
             governor.propose(alice, new bytes(0), "test");
         }
     }
@@ -205,7 +206,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         covenToken.mintInflation();
         if (covenToken.balanceOf(owner) > 0) {
             vm.expectEmit(true, true, false, false);
-            emit CovenantGovernor.ProposalCreated(1, owner, "specific description");
+            emit ICovenantGovernor.ProposalCreated(1, owner, "specific description");
             governor.propose(alice, new bytes(0), "specific description");
         }
     }
@@ -290,7 +291,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.warp(block.timestamp + 1 days);
             vm.prank(alice);
             vm.expectEmit(true, true, true, true);
-            emit CovenantGovernor.VoteCast(pid, alice, 1, 100);
+            emit ICovenantGovernor.VoteCast(pid, alice, 1, 100);
             governor.castVote(pid, 1);
         }
     }
@@ -304,7 +305,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(owner);
             uint256 pid = governor.propose(bob, new bytes(0), "test");
             vm.prank(alice);
-            vm.expectRevert(CovenantGovernor.VotingNotStarted.selector);
+            vm.expectRevert(ICovenantGovernor.VotingNotStarted.selector);
             governor.castVote(pid, 1);
         }
     }
@@ -319,7 +320,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             uint256 pid = governor.propose(bob, new bytes(0), "test");
             vm.warp(block.timestamp + 1 days + 7 days + 1);
             vm.prank(alice);
-            vm.expectRevert(CovenantGovernor.VotingEnded.selector);
+            vm.expectRevert(ICovenantGovernor.VotingEnded.selector);
             governor.castVote(pid, 1);
         }
     }
@@ -336,7 +337,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(alice);
             governor.castVote(pid, 1);
             vm.prank(alice);
-            vm.expectRevert(CovenantGovernor.InvalidProposal.selector);
+            vm.expectRevert(ICovenantGovernor.InvalidProposal.selector);
             governor.castVote(pid, 0);
         }
     }
@@ -351,7 +352,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             uint256 pid = governor.propose(bob, new bytes(0), "test");
             vm.warp(block.timestamp + 1 days);
             vm.prank(alice);
-            vm.expectRevert(CovenantGovernor.InvalidProposal.selector);
+            vm.expectRevert(ICovenantGovernor.InvalidProposal.selector);
             governor.castVote(pid, 3);
         }
     }
@@ -367,7 +368,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.warp(block.timestamp + 1 days);
             vm.prank(alice);
             governor.castVote(pid, 1);
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             assertEq(p.forVotes, 100);
         }
     }
@@ -386,7 +387,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             governor.castVote(pid, 1);
             vm.prank(bob);
             governor.castVote(pid, 1);
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             assertEq(p.forVotes, 200);
         }
     }
@@ -405,7 +406,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             governor.castVote(pid, 1);
             vm.prank(bob);
             governor.castVote(pid, 0);
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             assertEq(p.forVotes, 100);
             assertEq(p.againstVotes, 100);
         }
@@ -437,7 +438,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.warp(block.timestamp + 1 days);
             vm.prank(alice);
             vm.expectEmit(true, true, true, true);
-            emit CovenantGovernor.VoteCast(pid, alice, 1, 100);
+            emit ICovenantGovernor.VoteCast(pid, alice, 1, 100);
             governor.castVote(pid, 1);
         }
     }
@@ -453,7 +454,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.warp(block.timestamp + 1 days);
             vm.prank(bob);
             vm.expectEmit(true, true, true, true);
-            emit CovenantGovernor.VoteCast(pid, bob, 1, 100);
+            emit ICovenantGovernor.VoteCast(pid, bob, 1, 100);
             governor.castVote(pid, 1);
         }
     }
@@ -469,7 +470,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.warp(block.timestamp + 1 days);
             vm.prank(alice);
             vm.expectEmit(true, true, true, true);
-            emit CovenantGovernor.VoteCast(pid, alice, 0, 100);
+            emit ICovenantGovernor.VoteCast(pid, alice, 0, 100);
             governor.castVote(pid, 0);
         }
     }
@@ -485,7 +486,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.warp(block.timestamp + 1 days);
             vm.prank(alice);
             vm.expectEmit(true, true, true, true);
-            emit CovenantGovernor.VoteCast(pid, alice, 1, 250);
+            emit ICovenantGovernor.VoteCast(pid, alice, 1, 250);
             governor.castVote(pid, 1);
         }
     }
@@ -504,7 +505,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
                 vm.prank(voter);
                 governor.castVote(pid, 1);
             }
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             assertEq(p.forVotes, 1000);
         }
     }
@@ -518,7 +519,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.warp(block.timestamp + 1 days);
             vm.prank(carol);
             governor.castVote(pid, 1);
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             assertEq(p.forVotes, 0);
         }
     }
@@ -531,7 +532,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             covenToken.transfer(alice, 100);
             vm.prank(owner);
             uint256 pid = governor.propose(bob, new bytes(0), "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             vm.warp(p.startTime);
             vm.prank(alice);
             governor.castVote(pid, 1);
@@ -547,7 +548,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             covenToken.transfer(alice, 100);
             vm.prank(owner);
             uint256 pid = governor.propose(bob, new bytes(0), "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             vm.warp(p.endTime);
             vm.prank(alice);
             governor.castVote(pid, 1);
@@ -563,10 +564,10 @@ contract CovenantGovernorTest is DeploymentFixtures {
             covenToken.transfer(alice, 100);
             vm.prank(owner);
             uint256 pid = governor.propose(bob, new bytes(0), "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             vm.warp(p.endTime + 1);
             vm.prank(alice);
-            vm.expectRevert(CovenantGovernor.VotingEnded.selector);
+            vm.expectRevert(ICovenantGovernor.VotingEnded.selector);
             governor.castVote(pid, 1);
         }
     }
@@ -603,7 +604,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             governor.castVote(pid, 1);
             vm.warp(block.timestamp + 7 days + 1);
             vm.expectEmit(true, false, false, false);
-            emit CovenantGovernor.ProposalExecuted(pid);
+            emit ICovenantGovernor.ProposalExecuted(pid);
             governor.execute(pid);
         }
     }
@@ -620,7 +621,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(alice);
             governor.castVote(pid, 1);
             vm.warp(block.timestamp + 7 days - 1);
-            vm.expectRevert(CovenantGovernor.VotingNotEnded.selector);
+            vm.expectRevert(ICovenantGovernor.VotingNotEnded.selector);
             governor.execute(pid);
         }
     }
@@ -638,7 +639,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             governor.castVote(pid, 1);
             vm.warp(block.timestamp + 7 days + 1);
             governor.execute(pid);
-            vm.expectRevert(CovenantGovernor.ProposalAlreadyExecuted.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalAlreadyExecuted.selector);
             governor.execute(pid);
         }
     }
@@ -655,7 +656,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(alice);
             governor.castVote(pid, 0);
             vm.warp(block.timestamp + 7 days + 1);
-            vm.expectRevert(CovenantGovernor.ProposalNotPassed.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalNotPassed.selector);
             governor.execute(pid);
         }
     }
@@ -672,7 +673,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(alice);
             governor.castVote(pid, 1);
             vm.warp(block.timestamp + 7 days + 1);
-            vm.expectRevert(CovenantGovernor.ProposalNotPassed.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalNotPassed.selector);
             governor.execute(pid);
         }
     }
@@ -687,7 +688,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             governor.cancel(pid);
             vm.stopPrank();
             vm.warp(block.timestamp + 1 days + 7 days + 1);
-            vm.expectRevert(CovenantGovernor.ProposalAlreadyExecuted.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalAlreadyExecuted.selector);
             governor.execute(pid);
         }
     }
@@ -741,7 +742,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(bob);
             governor.castVote(pid, 0);
             vm.warp(block.timestamp + 7 days + 1);
-            vm.expectRevert(CovenantGovernor.ProposalNotPassed.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalNotPassed.selector);
             governor.execute(pid);
         }
     }
@@ -758,7 +759,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(alice);
             governor.castVote(pid, 2);
             vm.warp(block.timestamp + 7 days + 1);
-            vm.expectRevert(CovenantGovernor.ProposalNotPassed.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalNotPassed.selector);
             governor.execute(pid);
         }
     }
@@ -776,7 +777,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(alice);
             governor.castVote(pid, 1);
             vm.warp(block.timestamp + 7 days + 1);
-            vm.expectRevert(CovenantGovernor.ProposalNotPassed.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalNotPassed.selector);
             governor.execute(pid);
         }
     }
@@ -817,7 +818,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             governor.castVote(pid, 1);
             vm.warp(block.timestamp + 7 days + 1);
             vm.expectEmit(true, false, false, false);
-            emit CovenantGovernor.ProposalExecuted(pid);
+            emit ICovenantGovernor.ProposalExecuted(pid);
             governor.execute(pid);
         }
     }
@@ -835,7 +836,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             governor.castVote(pid, 1);
             vm.warp(block.timestamp + 7 days + 1);
             governor.execute(pid);
-            vm.expectRevert(CovenantGovernor.ProposalAlreadyExecuted.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalAlreadyExecuted.selector);
             governor.execute(pid);
         }
     }
@@ -910,7 +911,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(owner);
             uint256 pid = governor.propose(alice, new bytes(0), "test");
             vm.expectEmit(true, false, false, false);
-            emit CovenantGovernor.ProposalCanceled(pid);
+            emit ICovenantGovernor.ProposalCanceled(pid);
             governor.cancel(pid);
         }
     }
@@ -924,7 +925,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(alice);
             uint256 pid = governor.propose(bob, new bytes(0), "test");
             vm.prank(bob);
-            vm.expectRevert(CovenantGovernor.UnauthorizedProposer.selector);
+            vm.expectRevert(ICovenantGovernor.UnauthorizedProposer.selector);
             governor.cancel(pid);
         }
     }
@@ -943,7 +944,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.warp(block.timestamp + 7 days + 1);
             governor.execute(pid);
             vm.prank(owner);
-            vm.expectRevert(CovenantGovernor.ProposalAlreadyExecuted.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalAlreadyExecuted.selector);
             governor.cancel(pid);
         }
     }
@@ -955,7 +956,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(owner);
             uint256 pid = governor.propose(alice, new bytes(0), "test");
             governor.cancel(pid);
-            vm.expectRevert(CovenantGovernor.ProposalAlreadyExecuted.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalAlreadyExecuted.selector);
             governor.cancel(pid);
         }
     }
@@ -970,7 +971,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             governor.cancel(pid);
             vm.stopPrank();
             vm.warp(block.timestamp + 1 days + 7 days + 1);
-            vm.expectRevert(CovenantGovernor.ProposalAlreadyExecuted.selector);
+            vm.expectRevert(ICovenantGovernor.ProposalAlreadyExecuted.selector);
             governor.execute(pid);
         }
     }
@@ -982,7 +983,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.prank(owner);
             uint256 pid = governor.propose(alice, new bytes(0), "test");
             vm.expectEmit(true, false, false, false);
-            emit CovenantGovernor.ProposalCanceled(pid);
+            emit ICovenantGovernor.ProposalCanceled(pid);
             governor.cancel(pid);
         }
     }
@@ -1054,7 +1055,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         if (covenToken.balanceOf(owner) > 0) {
             vm.prank(owner);
             uint256 pid = governor.propose(alice, new bytes(0), "test");
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             assertEq(p.id, 1);
             assertEq(p.proposer, owner);
             assertEq(p.description, "test");
@@ -1081,7 +1082,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
         assertEq(governor.votingPeriod(), 7 days);
     }
     function test_GetProposal_NonExistent() public view {
-        CovenantGovernor.Proposal memory p = governor.getProposal(999);
+        ICovenantGovernor.Proposal memory p = governor.getProposal(999);
         assertEq(p.id, 0);
     }
     function test_GetVotes_ZeroBalance() public view {
@@ -1163,7 +1164,7 @@ contract CovenantGovernorTest is DeploymentFixtures {
             vm.warp(block.timestamp + 1 days);
             vm.prank(alice);
             governor.castVote(pid, support);
-            CovenantGovernor.Proposal memory p = governor.getProposal(pid);
+            ICovenantGovernor.Proposal memory p = governor.getProposal(pid);
             if (support == 0) assertEq(p.againstVotes, amount);
             else if (support == 1) assertEq(p.forVotes, amount);
             else assertEq(p.abstainVotes, amount);

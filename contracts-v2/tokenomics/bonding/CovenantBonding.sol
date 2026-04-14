@@ -135,7 +135,7 @@ contract CovenantBonding is IBonding, Ownable, ReentrancyGuard {
         if (bt.capacityUsed + principalAmount > bt.maxCapacity) revert InsufficientCapacity();
         
         // Calculate bond price and COVEN payout
-        (uint256 bondPrice, uint256 covenAmount, uint256 discount) = _calculateBondPayout(
+        (uint256 price, uint256 covenAmount, uint256 discount) = _calculateBondPayout(
             bondTypeId,
             principalAmount
         );
@@ -274,7 +274,7 @@ contract CovenantBonding is IBonding, Ownable, ReentrancyGuard {
     function _calculateBondPayout(
         uint256 bondTypeId,
         uint256 principalAmount
-    ) internal view returns (uint256 bondPrice, uint256 covenAmount, uint256 discount) {
+    ) internal view returns (uint256 price, uint256 covenAmount, uint256 discount) {
         BondType storage bt = bondTypes[bondTypeId];
         
         // Get market price of COVEN in principal token terms
@@ -299,10 +299,10 @@ contract CovenantBonding is IBonding, Ownable, ReentrancyGuard {
         
         // Bond price = market price * (1 - discount)
         uint256 marketPrice = (covenUsdPrice * PRICE_PRECISION) / principalUsdPrice;
-        bondPrice = (marketPrice * (BOND_PRECISION - discount)) / BOND_PRECISION;
+        price = (marketPrice * (BOND_PRECISION - discount)) / BOND_PRECISION;
         
         // COVEN amount = principal value / bond price
-        covenAmount = (principalValue * PRICE_PRECISION) / (bondPrice > 0 ? bondPrice : 1);
+        covenAmount = (principalValue * PRICE_PRECISION) / (price > 0 ? price : 1);
         
         // Adjust for decimals
         uint256 principalDecimals = IERC20Metadata(bt.principalToken).decimals();

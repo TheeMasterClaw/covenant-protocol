@@ -23,9 +23,9 @@ contract CovenantPassportTest is Test {
         vm.stopPrank();
     }
     
-    function _signStamp(address signer, address _user, bytes32 provider, bytes32 hash) internal pure returns (bytes memory) {
+    function _signStamp(address signer, address _user, bytes32 provider, bytes32 hash) internal view returns (bytes memory) {
         bytes32 digest = keccak256(abi.encodePacked(_user, provider, hash, block.timestamp / 1 days));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(uint256(uint160(signer)) + 1, digest.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(uint256(uint160(signer)) + 1, MessageHashUtils.toEthSignedMessageHash(digest));
         return abi.encodePacked(r, s, v);
     }
     

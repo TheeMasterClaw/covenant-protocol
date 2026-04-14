@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import {DeploymentFixtures} from "../../../fixtures/DeploymentFixtures.sol";
 import {TaskMarket} from "../../../../contracts-v2/task/TaskMarket.sol";
+import {ITaskMarket} from "../../../../contracts-v2/interfaces/ITaskMarket.sol";
 
 contract TaskMarketTest is DeploymentFixtures {
     function setUp() public override {
@@ -81,12 +82,12 @@ contract TaskMarketTest is DeploymentFixtures {
     }
     function test_CreateTask_EmitsEvent() public asAlice {
         vm.expectEmit(true, true, true, true);
-        emit TaskMarket.TaskCreated(1, 1, alice, 1 ether);
+        emit ITaskMarket.TaskCreated(1, 1, alice, 1 ether);
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
     }
     function test_CreateTask_StoresTask() public asAlice {
         uint256 taskId = taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
-        TaskMarket.Task memory task = taskMarket.getTask(taskId);
+        ITaskMarket.Task memory task = taskMarket.getTask(taskId);
         assertEq(task.id, 1);
         assertEq(task.covenantId, 1);
         assertEq(task.creator, alice);
@@ -94,29 +95,29 @@ contract TaskMarketTest is DeploymentFixtures {
     }
     function test_CreateTask_NativeToken() public asAlice {
         uint256 taskId = taskMarket.createTask{value: 2 ether}(1, 2 ether, address(0), block.timestamp + 1 days, bytes32(0));
-        TaskMarket.Task memory task = taskMarket.getTask(taskId);
+        ITaskMarket.Task memory task = taskMarket.getTask(taskId);
         assertEq(task.rewardToken, address(0));
     }
     function test_CreateTask_ERC20Task() public asAlice {
         token.approve(address(taskMarket), 1 ether);
         uint256 taskId = taskMarket.createTask(1, 1 ether, address(token), block.timestamp + 1 days, bytes32(0));
-        TaskMarket.Task memory task = taskMarket.getTask(taskId);
+        ITaskMarket.Task memory task = taskMarket.getTask(taskId);
         assertEq(task.rewardToken, address(token));
     }
     function test_CreateTask_InvalidCovenantIdReverts() public asAlice {
-        vm.expectRevert(TaskMarket.InvalidCovenant.selector);
+        vm.expectRevert(ITaskMarket.InvalidCovenant.selector);
         taskMarket.createTask{value: 1 ether}(0, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
     }
     function test_CreateTask_InvalidRewardReverts() public asAlice {
-        vm.expectRevert(TaskMarket.InvalidReward.selector);
+        vm.expectRevert(ITaskMarket.InvalidReward.selector);
         taskMarket.createTask{value: 0}(1, 0, address(0), block.timestamp + 1 days, bytes32(0));
     }
     function test_CreateTask_InvalidDeadlineReverts() public asAlice {
-        vm.expectRevert(TaskMarket.InvalidDeadline.selector);
+        vm.expectRevert(ITaskMarket.InvalidDeadline.selector);
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp - 1, bytes32(0));
     }
     function test_CreateTask_EthAmountMismatchReverts() public asAlice {
-        vm.expectRevert(TaskMarket.InvalidReward.selector);
+        vm.expectRevert(ITaskMarket.InvalidReward.selector);
         taskMarket.createTask{value: 0.5 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
     }
     function test_CreateTask_TasksByCovenant() public asAlice {
@@ -134,7 +135,7 @@ contract TaskMarketTest is DeploymentFixtures {
     function test_CreateTask_WithMetadata() public asAlice {
         bytes32 metadata = keccak256("task metadata");
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, metadata);
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.metadataHash, metadata);
     }
     function test_CreateTask_DifferentCovenantIds() public asAlice {
@@ -146,16 +147,16 @@ contract TaskMarketTest is DeploymentFixtures {
     function test_CreateTask_DifferentRewards() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         taskMarket.createTask{value: 2 ether}(1, 2 ether, address(0), block.timestamp + 1 days, bytes32(0));
-        TaskMarket.Task memory t1 = taskMarket.getTask(1);
-        TaskMarket.Task memory t2 = taskMarket.getTask(2);
+        ITaskMarket.Task memory t1 = taskMarket.getTask(1);
+        ITaskMarket.Task memory t2 = taskMarket.getTask(2);
         assertEq(t1.reward, 1 ether);
         assertEq(t2.reward, 2 ether);
     }
     function test_CreateTask_DifferentDeadlines() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 7 days, bytes32(0));
-        TaskMarket.Task memory t1 = taskMarket.getTask(1);
-        TaskMarket.Task memory t2 = taskMarket.getTask(2);
+        ITaskMarket.Task memory t1 = taskMarket.getTask(1);
+        ITaskMarket.Task memory t2 = taskMarket.getTask(2);
         assertEq(t1.deadline, block.timestamp + 1 days);
         assertEq(t2.deadline, block.timestamp + 7 days);
     }
@@ -178,46 +179,46 @@ contract TaskMarketTest is DeploymentFixtures {
     }
     function test_CreateTask_StatusIsOpen() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.status, 0);
     }
     function test_CreateTask_AssigneeIsZero() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.assignee, address(0));
     }
     function test_CreateTask_CurrentTimestampDeadline() public asAlice {
-        vm.expectRevert(TaskMarket.InvalidDeadline.selector);
+        vm.expectRevert(ITaskMarket.InvalidDeadline.selector);
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp, bytes32(0));
     }
     function test_CreateTask_PastDeadlineReverts() public asAlice {
-        vm.expectRevert(TaskMarket.InvalidDeadline.selector);
+        vm.expectRevert(ITaskMarket.InvalidDeadline.selector);
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp - 1, bytes32(0));
     }
     function test_CreateTask_FutureDeadlineAllowed() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 365 days, bytes32(0));
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.deadline, block.timestamp + 365 days);
     }
     function test_CreateTask_EventContainsCorrectCovenantId() public asAlice {
         vm.expectEmit(true, true, true, true);
-        emit TaskMarket.TaskCreated(1, 5, alice, 1 ether);
+        emit ITaskMarket.TaskCreated(1, 5, alice, 1 ether);
         taskMarket.createTask{value: 1 ether}(5, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
     }
     function test_CreateTask_EventContainsCorrectReward() public asAlice {
         vm.expectEmit(true, true, true, true);
-        emit TaskMarket.TaskCreated(1, 1, alice, 5 ether);
+        emit ITaskMarket.TaskCreated(1, 1, alice, 5 ether);
         taskMarket.createTask{value: 5 ether}(1, 5 ether, address(0), block.timestamp + 1 days, bytes32(0));
     }
     function test_CreateTask_EventContainsCorrectCreator() public asBob {
         vm.expectEmit(true, true, true, true);
-        emit TaskMarket.TaskCreated(1, 1, bob, 1 ether);
+        emit ITaskMarket.TaskCreated(1, 1, bob, 1 ether);
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
     }
     function test_CreateTask_ERC20ZeroAddressUsesEth() public asAlice {
         // When rewardToken is address(0), ETH is used
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.rewardToken, address(0));
     }
     function test_CreateTask_10Tasks() public asAlice {
@@ -243,12 +244,12 @@ contract TaskMarketTest is DeploymentFixtures {
     }
     function test_CreateTask_ExactEthAmount() public asAlice {
         taskMarket.createTask{value: 1.5 ether}(1, 1.5 ether, address(0), block.timestamp + 1 days, bytes32(0));
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.reward, 1.5 ether);
     }
     function test_CreateTask_ExcessEthRefundedNotImplemented() public asAlice {
         // Contract requires exact ETH amount
-        vm.expectRevert(TaskMarket.InvalidReward.selector);
+        vm.expectRevert(ITaskMarket.InvalidReward.selector);
         taskMarket.createTask{value: 2 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
     }
 
@@ -257,13 +258,13 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.prank(bob);
         taskMarket.assignTask(1);
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.assignee, bob);
     }
     function test_AssignTask_EmitsEvent() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.expectEmit(true, true, false, false);
-        emit TaskMarket.TaskAssigned(1, bob);
+        emit ITaskMarket.TaskAssigned(1, bob);
         vm.prank(bob);
         taskMarket.assignTask(1);
     }
@@ -271,7 +272,7 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.prank(bob);
         taskMarket.assignTask(1);
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.status, 1);
     }
     function test_AssignTask_TasksByAssignee() public asAlice {
@@ -285,13 +286,13 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.prank(bob);
         taskMarket.assignTask(1);
-        vm.expectRevert(TaskMarket.TaskNotOpen.selector);
+        vm.expectRevert(ITaskMarket.TaskNotOpen.selector);
         taskMarket.assignTask(1);
     }
     function test_AssignTask_DeadlinePassedReverts() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.warp(block.timestamp + 2 days);
-        vm.expectRevert(TaskMarket.DeadlinePassed.selector);
+        vm.expectRevert(ITaskMarket.DeadlinePassed.selector);
         vm.prank(bob);
         taskMarket.assignTask(1);
     }
@@ -327,14 +328,14 @@ contract TaskMarketTest is DeploymentFixtures {
     function test_AssignTask_EventContainsCorrectTaskId() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.expectEmit(true, true, false, false);
-        emit TaskMarket.TaskAssigned(1, bob);
+        emit ITaskMarket.TaskAssigned(1, bob);
         vm.prank(bob);
         taskMarket.assignTask(1);
     }
     function test_AssignTask_EventContainsCorrectAssignee() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.expectEmit(true, true, false, false);
-        emit TaskMarket.TaskAssigned(1, carol);
+        emit ITaskMarket.TaskAssigned(1, carol);
         vm.prank(carol);
         taskMarket.assignTask(1);
     }
@@ -397,7 +398,7 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.assignTask(1);
         bytes32 proofHash = keccak256("proof");
         vm.expectEmit(true, false, false, true);
-        emit TaskMarket.TaskSubmitted(1, proofHash);
+        emit ITaskMarket.TaskSubmitted(1, proofHash);
         vm.prank(bob);
         taskMarket.submitTask(1, proofHash);
     }
@@ -411,7 +412,7 @@ contract TaskMarketTest is DeploymentFixtures {
     }
     function test_SubmitTask_NotAssignedReverts() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
-        vm.expectRevert(TaskMarket.TaskNotAssigned.selector);
+        vm.expectRevert(ITaskMarket.TaskNotAssigned.selector);
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
     }
@@ -419,7 +420,7 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.prank(bob);
         taskMarket.assignTask(1);
-        vm.expectRevert(TaskMarket.UnauthorizedTaskAction.selector);
+        vm.expectRevert(ITaskMarket.UnauthorizedTaskAction.selector);
         vm.prank(carol);
         taskMarket.submitTask(1, keccak256("proof"));
     }
@@ -429,7 +430,7 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.assignTask(1);
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
-        vm.expectRevert(TaskMarket.TaskNotAssigned.selector);
+        vm.expectRevert(ITaskMarket.TaskNotAssigned.selector);
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof2"));
     }
@@ -453,7 +454,7 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.assignTask(1);
         bytes32 proofHash = keccak256("specific proof");
         vm.expectEmit(true, false, false, true);
-        emit TaskMarket.TaskSubmitted(1, proofHash);
+        emit ITaskMarket.TaskSubmitted(1, proofHash);
         vm.prank(bob);
         taskMarket.submitTask(1, proofHash);
     }
@@ -477,7 +478,7 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.prank(bob);
         taskMarket.assignTask(1);
-        vm.expectRevert(TaskMarket.UnauthorizedTaskAction.selector);
+        vm.expectRevert(ITaskMarket.UnauthorizedTaskAction.selector);
         taskMarket.submitTask(1, keccak256("proof"));
     }
     function test_SubmitTask_DifferentAssignees() public asAlice {
@@ -521,7 +522,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.assignTask(1);
         vm.expectEmit(true, false, false, true);
-        emit TaskMarket.TaskSubmitted(1, keccak256("proof"));
+        emit ITaskMarket.TaskSubmitted(1, keccak256("proof"));
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
     }
@@ -555,7 +556,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.expectEmit(true, true, true, true);
-        emit TaskMarket.TaskCompleted(1, bob, 1 ether);
+        emit ITaskMarket.TaskCompleted(1, bob, 1 ether);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_TransfersReward() public asAlice {
@@ -581,7 +582,7 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.prank(bob);
         taskMarket.assignTask(1);
-        vm.expectRevert(TaskMarket.TaskNotSubmitted.selector);
+        vm.expectRevert(ITaskMarket.TaskNotSubmitted.selector);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_NotCreatorReverts() public asAlice {
@@ -591,7 +592,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.prank(bob);
-        vm.expectRevert(TaskMarket.UnauthorizedTaskAction.selector);
+        vm.expectRevert(ITaskMarket.UnauthorizedTaskAction.selector);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_AssigneeCannotComplete() public asAlice {
@@ -601,7 +602,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.prank(bob);
-        vm.expectRevert(TaskMarket.UnauthorizedTaskAction.selector);
+        vm.expectRevert(ITaskMarket.UnauthorizedTaskAction.selector);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_NonExistentTaskReverts() public {
@@ -627,7 +628,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.expectEmit(true, true, true, true);
-        emit TaskMarket.TaskCompleted(1, bob, 1 ether);
+        emit ITaskMarket.TaskCompleted(1, bob, 1 ether);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_EventContainsCorrectTaskId() public asAlice {
@@ -637,7 +638,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.expectEmit(true, true, true, true);
-        emit TaskMarket.TaskCompleted(1, bob, 1 ether);
+        emit ITaskMarket.TaskCompleted(1, bob, 1 ether);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_EventContainsCorrectAssignee() public asAlice {
@@ -647,7 +648,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.expectEmit(true, true, true, true);
-        emit TaskMarket.TaskCompleted(1, bob, 1 ether);
+        emit ITaskMarket.TaskCompleted(1, bob, 1 ether);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_EventContainsCorrectReward() public asAlice {
@@ -657,7 +658,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.expectEmit(true, true, true, true);
-        emit TaskMarket.TaskCompleted(1, bob, 5 ether);
+        emit ITaskMarket.TaskCompleted(1, bob, 5 ether);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_DifferentRewards() public asAlice {
@@ -682,7 +683,7 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.submitTask(1, keccak256("proof"));
         taskMarket.completeTask(1);
         // Status already updated prevents reentrancy
-        vm.expectRevert(TaskMarket.TaskNotSubmitted.selector);
+        vm.expectRevert(ITaskMarket.TaskNotSubmitted.selector);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_AlreadyCompletedReverts() public asAlice {
@@ -692,7 +693,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         taskMarket.completeTask(1);
-        vm.expectRevert(TaskMarket.TaskNotSubmitted.selector);
+        vm.expectRevert(ITaskMarket.TaskNotSubmitted.selector);
         taskMarket.completeTask(1);
     }
     function test_CompleteTask_ERC20RewardDecreasesContractBalance() public asAlice {
@@ -744,7 +745,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.expectEmit(true, true, false, false);
-        emit TaskMarket.TaskDisputed(1, 0);
+        emit ITaskMarket.TaskDisputed(1, 0);
         taskMarket.disputeTask(1);
     }
     function test_DisputeTask_ChangesStatus() public asAlice {
@@ -760,7 +761,7 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.prank(bob);
         taskMarket.assignTask(1);
-        vm.expectRevert(TaskMarket.TaskNotSubmitted.selector);
+        vm.expectRevert(ITaskMarket.TaskNotSubmitted.selector);
         taskMarket.disputeTask(1);
     }
     function test_DisputeTask_NotInvolvedReverts() public asAlice {
@@ -770,7 +771,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.prank(carol);
-        vm.expectRevert(TaskMarket.UnauthorizedTaskAction.selector);
+        vm.expectRevert(ITaskMarket.UnauthorizedTaskAction.selector);
         taskMarket.disputeTask(1);
     }
     function test_DisputeTask_ReturnsDisputeId() public asAlice {
@@ -796,8 +797,8 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.submitTask(2, keccak256("proof2"));
         vm.stopPrank();
         uint256 disputeId1 = taskMarket.disputeTask(1);
-        uint256 disputeId2 = vm.prank(bob);
-        disputeId2 = taskMarket.disputeTask(2);
+        vm.prank(bob);
+        uint256 disputeId2 = taskMarket.disputeTask(2);
         assertTrue(disputeId1 != disputeId2);
     }
     function test_DisputeTask_EventContainsCorrectTaskId() public asAlice {
@@ -807,7 +808,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.expectEmit(true, true, false, false);
-        emit TaskMarket.TaskDisputed(1, 0);
+        emit ITaskMarket.TaskDisputed(1, 0);
         taskMarket.disputeTask(1);
     }
     function test_DisputeTask_NoEthRequired() public asAlice {
@@ -846,7 +847,7 @@ contract TaskMarketTest is DeploymentFixtures {
         vm.prank(bob);
         taskMarket.submitTask(1, keccak256("proof"));
         vm.prank(carol);
-        vm.expectRevert(TaskMarket.UnauthorizedTaskAction.selector);
+        vm.expectRevert(ITaskMarket.UnauthorizedTaskAction.selector);
         taskMarket.disputeTask(1);
     }
     function test_DisputeTask_CovenantIdUnchanged() public asAlice {
@@ -899,7 +900,7 @@ contract TaskMarketTest is DeploymentFixtures {
     function test_CancelTask_EmitsEvent() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.expectEmit(true, false, false, false);
-        emit TaskMarket.TaskCancelled(1);
+        emit ITaskMarket.TaskCancelled(1);
         taskMarket.cancelTask(1);
     }
     function test_CancelTask_RefundsEth() public asAlice {
@@ -917,13 +918,13 @@ contract TaskMarketTest is DeploymentFixtures {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.prank(bob);
         taskMarket.assignTask(1);
-        vm.expectRevert(TaskMarket.TaskNotOpen.selector);
+        vm.expectRevert(ITaskMarket.TaskNotOpen.selector);
         taskMarket.cancelTask(1);
     }
     function test_CancelTask_NotCreatorReverts() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.prank(bob);
-        vm.expectRevert(TaskMarket.UnauthorizedTaskAction.selector);
+        vm.expectRevert(ITaskMarket.UnauthorizedTaskAction.selector);
         taskMarket.cancelTask(1);
     }
     function test_CancelTask_NonExistentTaskReverts() public {
@@ -940,13 +941,13 @@ contract TaskMarketTest is DeploymentFixtures {
     function test_CancelTask_AlreadyCancelledReverts() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         taskMarket.cancelTask(1);
-        vm.expectRevert(TaskMarket.TaskNotOpen.selector);
+        vm.expectRevert(ITaskMarket.TaskNotOpen.selector);
         taskMarket.cancelTask(1);
     }
     function test_CancelTask_EventContainsCorrectTaskId() public asAlice {
         taskMarket.createTask{value: 1 ether}(1, 1 ether, address(0), block.timestamp + 1 days, bytes32(0));
         vm.expectEmit(true, false, false, false);
-        emit TaskMarket.TaskCancelled(1);
+        emit ITaskMarket.TaskCancelled(1);
         taskMarket.cancelTask(1);
     }
     function test_CancelTask_NoAssignee() public asAlice {
@@ -1019,7 +1020,7 @@ contract TaskMarketTest is DeploymentFixtures {
     // ==================== VIEW FUNCTION TESTS (15) ====================
     function test_GetTask_ReturnsCorrectData() public asAlice {
         taskMarket.createTask{value: 1 ether}(5, 2 ether, address(0), block.timestamp + 7 days, bytes32("metadata"));
-        TaskMarket.Task memory task = taskMarket.getTask(1);
+        ITaskMarket.Task memory task = taskMarket.getTask(1);
         assertEq(task.id, 1);
         assertEq(task.covenantId, 5);
         assertEq(task.creator, alice);
@@ -1083,7 +1084,7 @@ contract TaskMarketTest is DeploymentFixtures {
         assertEq(taskMarket.getTasksByAssignee(carol).length, 1);
     }
     function test_GetTask_NonExistentReturnsZero() public view {
-        TaskMarket.Task memory task = taskMarket.getTask(999);
+        ITaskMarket.Task memory task = taskMarket.getTask(999);
         assertEq(task.id, 0);
     }
     function test_ViewFunctions_ArePureOrView() public view {

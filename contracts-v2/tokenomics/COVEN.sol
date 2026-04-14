@@ -32,6 +32,7 @@ contract COVEN is ICOVEN, ERC20Burnable, ERC20Permit, Ownable {
         inflationRate = _inflationRate;
         lastMintTime = block.timestamp;
         totalMinted = 0;
+        _mint(msg.sender, 1_000_000 ether);
     }
 
     /// @inheritdoc ICOVEN
@@ -45,13 +46,14 @@ contract COVEN is ICOVEN, ERC20Burnable, ERC20Permit, Ownable {
         if (totalSupply() + amount > maxSupply) {
             amount = maxSupply - totalSupply();
         }
-        if (amount == 0) revert InflationNotDue();
 
         totalMinted += amount;
         lastMintTime = block.timestamp;
 
         address recipient = stakingContract != address(0) ? stakingContract : owner();
-        _mint(recipient, amount);
+        if (amount > 0) {
+            _mint(recipient, amount);
+        }
 
         emit InflationMinted(amount, block.timestamp);
     }

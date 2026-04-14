@@ -18,7 +18,7 @@ contract CovenantBondingTest is Test {
     function setUp() public {
         vm.startPrank(owner);
         coven = new COVEN("COVENANT", "COVEN", 100_000_000e18, 500);
-        principal = new MockERC20("Principal", "PRC");
+        principal = new MockERC20("Principal", "PRC", 18);
         bonding = new CovenantBonding(address(coven), treasury);
         
         coven.transfer(address(bonding), 1_000_000e18);
