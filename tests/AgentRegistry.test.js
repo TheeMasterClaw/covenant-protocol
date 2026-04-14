@@ -15,12 +15,18 @@ describe('AgentRegistry', function () {
     it('Should register a new agent', async function () {
       const fee = await agentRegistry.registrationFee();
       
-      await expect(agentRegistry.connect(agent1).registerAgent(
+      const blockBefore = await ethers.provider.getBlock('latest');
+      const tx = await agentRegistry.connect(agent1).registerAgent(
         'ipfs://QmProfile1',
         [1, 2, 3], // Skill IDs
         { value: fee }
-      )).to.emit(agentRegistry, 'AgentRegistered')
-        .withArgs(agent1.address, 'ipfs://QmProfile1', [1, 2, 3], await ethers.provider.getBlock('latest').then(b => b.timestamp));
+      );
+      const receipt = await tx.wait();
+      const blockTx = await ethers.provider.getBlock(receipt.blockHash);
+      const timestamp = blockTx ? blockTx.timestamp : blockBefore.timestamp + 1;
+      await expect(tx)
+        .to.emit(agentRegistry, 'AgentRegistered')
+        .withArgs(agent1.address, 'ipfs://QmProfile1', [1, 2, 3], timestamp);
       
       const profile = await agentRegistry.getAgent(agent1.address);
       expect(profile.isActive).to.be.true;

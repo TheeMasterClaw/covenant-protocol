@@ -12,6 +12,8 @@ interface IReputationAdapter {
  * @notice Aggregates reputation scores from multiple AI agent frameworks
  */
 contract ReputationAggregator is Ownable {
+    constructor() Ownable(msg.sender) {}
+
     struct Source {
         address adapter;
         uint256 weight; // basis points, max 10000

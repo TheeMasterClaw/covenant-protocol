@@ -275,7 +275,7 @@ contract CovenantBridgeRouter is ICovenantBridge, Ownable, ReentrancyGuard {
     
     // Required interface stubs
     function sendMessage(uint16 targetChain, bytes calldata payload) external payable override returns (uint256) {
-        return routeMessage(targetChain, payload);
+        return this.routeMessage{value: msg.value}(targetChain, payload);
     }
     function receiveMessage(uint16 sourceChain, bytes calldata payload) external override {}
     function addSupportedChain(uint16 chainId, address adapter) external override {}

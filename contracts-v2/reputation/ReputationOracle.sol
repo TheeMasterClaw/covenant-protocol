@@ -16,28 +16,10 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract ReputationOracle is IReputationOracle, Ownable {
 
-    enum OracleType {
-        Unknown,
-        ChainlinkFunctions,
-        UMAOptimisticOracle,
-        API3,
-        PythNetwork,
-        Tellor,
-        ReclaimProtocol
-    }
-
     struct OracleInfo {
         bool authorized;
         OracleType oracleType;
         uint8 trustWeight; // 0-100, used in multi-source aggregation
-    }
-
-    struct VerificationPayload {
-        bytes32 dataHash;
-        uint8 confidence;
-        bytes proof;
-        OracleType oracleType;
-        uint256 taskId;
     }
 
     mapping(address => OracleInfo) public authorizedOracles;
@@ -61,8 +43,6 @@ contract ReputationOracle is IReputationOracle, Ownable {
     function submitData(bytes32 dataHash, uint8 confidence, bytes calldata proof) external onlyOracle {
         if (dataHash == bytes32(0)) revert InvalidData();
         if (confidence > 100) revert InvalidData();
-
-        OracleType oType = authorizedOracles[msg.sender].oracleType;
 
         oracleData[dataHash] = OracleData({
             dataHash: dataHash,

@@ -20,12 +20,12 @@ module.exports = {
     xlayer: {
       url: process.env.XLAYER_RPC || 'https://rpc.xlayer.tech',
       chainId: 196,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.PRIVATE_KEY && process.env.PRIVATE_KEY.length === 66 ? [process.env.PRIVATE_KEY] : [],
     },
     xlayerTestnet: {
       url: 'https://testrpc.xlayer.tech',
       chainId: 1952,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.PRIVATE_KEY && process.env.PRIVATE_KEY.length === 66 ? [process.env.PRIVATE_KEY] : [],
     },
   },
   gasReporter: {
