@@ -4,7 +4,7 @@ import { useChainId, useSwitchChain } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 
-const TARGET_CHAIN_ID = 195;
+const TARGET_CHAIN_ID = 1952; // X Layer Testnet
 
 export function NetworkSwitcher() {
   const chainId = useChainId();
