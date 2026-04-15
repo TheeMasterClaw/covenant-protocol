@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/stores/app-store';
 import { NetworkSwitcher } from '@/components/layout/network-switcher';
@@ -34,11 +33,8 @@ export function AppHeader() {
         >
           {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </Button>
-        <ConnectButton 
-          showBalance={false}
-          chainStatus="icon"
-          accountStatus="address"
-        />
+        {/* Reown AppKit connect button */}
+        <appkit-button />
       </div>
     </header>
   );

@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { Providers } from './providers';
 import { FlashlightCursor } from '@/components/effects/flashlight-cursor';
-import '@rainbow-me/rainbowkit/styles.css';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });

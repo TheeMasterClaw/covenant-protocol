@@ -1,12 +1,30 @@
 'use client';
 
 import * as React from 'react';
-import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
+import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi';
+import { createAppKit } from '@reown/appkit/react';
+import { wagmiAdapter, projectId, networks, xLayerTestnet } from '@/lib/wagmi';
 import { useAppStore } from '@/stores/app-store';
-import { config } from '@/lib/wagmi';
 import { TooltipProvider } from '@/components/ui/tooltip';
+
+// Initialize AppKit
+const appKit = createAppKit({
+  adapters: [wagmiAdapter],
+  projectId,
+  networks,
+  defaultNetwork: xLayerTestnet,
+  metadata: {
+    name: 'COVENANT Protocol',
+    description: 'The Legal Layer for the AI Agent Economy',
+    url: typeof window !== 'undefined' ? window.location.origin : 'https://covenant-protocol.vercel.app',
+    icons: [],
+  },
+  features: {
+    analytics: false,
+  },
+  themeMode: 'dark',
+});
 
 function ThemeApplicator({ children }: { children: React.ReactNode }) {
   const { theme } = useAppStore();
@@ -14,9 +32,7 @@ function ThemeApplicator({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     const root = document.documentElement;
     root.classList.remove('dark', 'light');
-    if (theme === 'dark') {
-      // Default :root is dark, no class needed
-    } else {
+    if (theme !== 'dark') {
       root.classList.add('light');
     }
   }, [theme]);
@@ -26,22 +42,19 @@ function ThemeApplicator({ children }: { children: React.ReactNode }) {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient());
-  const { theme } = useAppStore();
 
-  const rainbowTheme = theme === 'dark'
-    ? darkTheme({ accentColor: '#6366f1', borderRadius: 'medium' })
-    : lightTheme({ accentColor: '#4f46e5', borderRadius: 'medium' });
+  const initialState = typeof document !== 'undefined'
+    ? cookieToInitialState(wagmiAdapter.wagmiConfig as Config)
+    : undefined;
 
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={rainbowTheme}>
-          <TooltipProvider delayDuration={0}>
-            <ThemeApplicator>
-              {children}
-            </ThemeApplicator>
-          </TooltipProvider>
-        </RainbowKitProvider>
+        <TooltipProvider delayDuration={0}>
+          <ThemeApplicator>
+            {children}
+          </ThemeApplicator>
+        </TooltipProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
