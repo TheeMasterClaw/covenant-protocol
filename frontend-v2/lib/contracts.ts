@@ -4414,6 +4414,24 @@ export const StakeTokenABI = [
   }
 ] as const satisfies Abi;
 
+// ABI for individual AgentCovenant instances (deployed by the factory)
+export const AgentCovenantABI = [
+  {"inputs":[],"name":"acceptCovenant","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"_milestoneIndex","type":"uint256"}],"name":"completeMilestone","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"counterparty","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"_index","type":"uint256"}],"name":"getMilestone","outputs":[{"components":[{"internalType":"string","name":"description","type":"string"},{"internalType":"uint256","name":"paymentAmount","type":"uint256"},{"internalType":"bool","name":"completed","type":"bool"},{"internalType":"bool","name":"paid","type":"bool"},{"internalType":"uint256","name":"completedAt","type":"uint256"}],"internalType":"struct AgentCovenant.Milestone","name":"","type":"tuple"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"getMilestoneCount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"initiator","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"isActive","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"_milestoneIndex","type":"uint256"}],"name":"payMilestone","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"string","name":"_reason","type":"string"}],"name":"raiseDispute","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"remainingBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"status","outputs":[{"internalType":"enum AgentCovenant.CovenantStatus","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"terms","outputs":[{"internalType":"bytes32","name":"covenantType","type":"bytes32"},{"internalType":"string","name":"termsIPFSHash","type":"string"},{"internalType":"uint256","name":"createdAt","type":"uint256"},{"internalType":"uint256","name":"expiresAt","type":"uint256"},{"internalType":"uint256","name":"stakeAmount","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"timeRemaining","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"stateMutability":"payable","type":"receive"}
+] as const satisfies Abi;
+
 export const CONTRACTS = {
   AgentRegistry: {
     address: '0x8e264821AFa98DD104eEcfcfa7FD9f8D8B320adA' as const,

@@ -2,7 +2,7 @@
 
 import { useReadContract, useReadContracts, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther, formatEther, type Address } from 'viem';
-import { CONTRACTS, CHAIN_ID } from '@/lib/contracts';
+import { CONTRACTS, CHAIN_ID, AgentCovenantABI } from '@/lib/contracts';
 
 // ─── Protocol Stats (read-only, no wallet needed) ───────────────────────────
 
@@ -302,6 +302,110 @@ export function useCovenantList(offset: bigint = 0n, limit: bigint = 50n) {
     error: result.error,
     refetch: result.refetch,
   };
+}
+
+// ─── Individual Covenant Instance ──────────────────────────────────────────
+
+export const STATUS_LABELS = ['Pending', 'Active', 'Fulfilled', 'Disputed', 'Resolved', 'Expired', 'Breached'] as const;
+
+export function useCovenantDetail(address?: Address) {
+  const results = useReadContracts({
+    contracts: address ? [
+      { address, abi: AgentCovenantABI, functionName: 'initiator' },
+      { address, abi: AgentCovenantABI, functionName: 'counterparty' },
+      { address, abi: AgentCovenantABI, functionName: 'status' },
+      { address, abi: AgentCovenantABI, functionName: 'terms' },
+      { address, abi: AgentCovenantABI, functionName: 'remainingBalance' },
+      { address, abi: AgentCovenantABI, functionName: 'timeRemaining' },
+      { address, abi: AgentCovenantABI, functionName: 'getMilestoneCount' },
+      { address, abi: AgentCovenantABI, functionName: 'isActive' },
+    ] : [],
+    query: { enabled: !!address },
+  });
+
+  const data = results.data;
+
+  return {
+    isLoading: results.isLoading,
+    error: results.error,
+    refetch: results.refetch,
+    initiator: data?.[0]?.result as Address | undefined,
+    counterparty: data?.[1]?.result as Address | undefined,
+    status: data?.[2]?.result as number | undefined,
+    statusLabel: data?.[2]?.result != null ? STATUS_LABELS[data[2].result as number] ?? 'Unknown' : undefined,
+    terms: data?.[3]?.result as any,
+    remainingBalance: data?.[4]?.result as bigint | undefined,
+    timeRemaining: data?.[5]?.result as bigint | undefined,
+    milestoneCount: data?.[6]?.result as bigint | undefined,
+    isActive: data?.[7]?.result as boolean | undefined,
+  };
+}
+
+export function useAcceptCovenant(covenantAddress?: Address) {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  const accept = () => {
+    if (!covenantAddress) return;
+    writeContract({
+      address: covenantAddress,
+      abi: AgentCovenantABI,
+      functionName: 'acceptCovenant',
+    });
+  };
+
+  return { accept, hash, isPending, isConfirming, isSuccess, error };
+}
+
+export function useRaiseDispute(covenantAddress?: Address) {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  const raiseDispute = (reason: string) => {
+    if (!covenantAddress) return;
+    writeContract({
+      address: covenantAddress,
+      abi: AgentCovenantABI,
+      functionName: 'raiseDispute',
+      args: [reason],
+    });
+  };
+
+  return { raiseDispute, hash, isPending, isConfirming, isSuccess, error };
+}
+
+export function useCompleteMilestone(covenantAddress?: Address) {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  const complete = (index: bigint) => {
+    if (!covenantAddress) return;
+    writeContract({
+      address: covenantAddress,
+      abi: AgentCovenantABI,
+      functionName: 'completeMilestone',
+      args: [index],
+    });
+  };
+
+  return { complete, hash, isPending, isConfirming, isSuccess, error };
+}
+
+export function usePayMilestone(covenantAddress?: Address) {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  const pay = (index: bigint) => {
+    if (!covenantAddress) return;
+    writeContract({
+      address: covenantAddress,
+      abi: AgentCovenantABI,
+      functionName: 'payMilestone',
+      args: [index],
+    });
+  };
+
+  return { pay, hash, isPending, isConfirming, isSuccess, error };
 }
 
 // ─── Reputation & Staking ───────────────────────────────────────────────────
