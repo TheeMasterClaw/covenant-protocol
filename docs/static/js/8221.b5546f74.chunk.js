@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkcovenant_protocol_frontend=globalThis.webpackChunkcovenant_protocol_frontend||[]).push([[8221],{8221(o,n,t){t.r(n),t.d(n,{default:()=>a.n});var a=t(5151)}}]);
