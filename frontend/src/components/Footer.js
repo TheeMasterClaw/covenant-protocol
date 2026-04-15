@@ -42,7 +42,7 @@ export function Footer() {
           <h4>Network</h4>
           <span className="network-badge">
             <span className="network-dot"></span>
-            X Layer Mainnet
+            X Layer Testnet
           </span>
           <p className="footer-contract-note">
             Verified contracts on X Layer

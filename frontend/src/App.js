@@ -142,7 +142,7 @@ function AppContent() {
     covenantCount: null,
     valueLocked: null,
     agentCount: null,
-    uptime: '99.9%'
+    chainId: TARGET_CHAIN_ID
   });
   
   // Loyalty checker state
@@ -517,34 +517,10 @@ function Dashboard({ stats, account, covenantCount, heroStats, hasContracts, onT
             <div className="stat-label">AI Agents</div>
           </div>
           <div className="stat">
-            <div className="stat-value">{heroStats?.uptime || '99.9%'}</div>
-            <div className="stat-label">Uptime</div>
+            <div className="stat-value">{heroStats?.chainId || TARGET_CHAIN_ID}</div>
+            <div className="stat-label">Chain ID</div>
           </div>
         </div>
-        
-        {!hasContracts && (
-          <motion.div 
-            className="demo-banner"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            style={{
-              marginTop: '32px',
-              padding: '16px 24px',
-              background: 'rgba(255, 170, 0, 0.1)',
-              border: '1px solid rgba(255, 170, 0, 0.3)',
-              borderRadius: '12px',
-              color: '#ffaa00',
-              fontSize: '14px',
-              maxWidth: '600px',
-              marginLeft: 'auto',
-              marginRight: 'auto'
-            }}
-          >
-            ⚠️ Demo Mode: Contract integration pending deployment. 
-            Core UI is fully functional.
-          </motion.div>
-        )}
       </motion.section>
 
       <motion.div 
@@ -614,7 +590,7 @@ function Dashboard({ stats, account, covenantCount, heroStats, hasContracts, onT
                   <span>→</span>
                   <div className="agent-avatar">{covenant.counterparty}</div>
                 </div>
-                <div className="covenant-amount">{covenant.amount} ETH</div>
+                <div className="covenant-amount">{covenant.amount} OKB</div>
                 <span className={`covenant-status status-${covenant.status.toLowerCase()}`}>
                   {covenant.status}
                 </span>
@@ -680,7 +656,7 @@ function Dashboard({ stats, account, covenantCount, heroStats, hasContracts, onT
                 <h4>{task.title}</h4>
                 <p>{task.description}</p>
                 <div className="task-meta">
-                  <span className="task-reward">{task.reward} ETH</span>
+                  <span className="task-reward">{task.reward} OKB</span>
                   <span className="task-bids">{task.bids} bids</span>
                 </div>
               </motion.div>
@@ -833,7 +809,7 @@ function Covenants({ contracts, account, onTestLoyalty }) {
               <div className="covenant-meta">
                 <div className="meta-item">
                   <span className="meta-label">Value</span>
-                  <span className="meta-value">{covenant.amount} ETH</span>
+                  <span className="meta-value">{covenant.amount} OKB</span>
                 </div>
                 {covenant.startDate && (
                   <div className="meta-item">
@@ -1008,7 +984,7 @@ function TaskMarket({ contracts, account }) {
             <div className="task-info-grid">
               <div className="info-item">
                 <span className="info-label">Reward</span>
-                <span className="info-value">{task.reward} ETH</span>
+                <span className="info-value">{task.reward} OKB</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Current Bids</span>
@@ -1025,7 +1001,7 @@ function TaskMarket({ contracts, account }) {
             <h4>Place Your Bid</h4>
             <div className="bid-form">
               <div className="form-group">
-                <label>Your Bid (ETH)</label>
+                <label>Your Bid (OKB)</label>
                 <input 
                   type="number" 
                   step="0.01" 
@@ -1087,9 +1063,9 @@ function TaskMarket({ contracts, account }) {
           </select>
           <select className="filter-select">
             <option>Any Price</option>
-            <option>Under 1 ETH</option>
-            <option>1-5 ETH</option>
-            <option>Over 5 ETH</option>
+            <option>Under 1 OKB</option>
+            <option>1-5 OKB</option>
+            <option>Over 5 OKB</option>
           </select>
         </div>
       )}
@@ -1127,9 +1103,9 @@ function TaskMarket({ contracts, account }) {
                 </div>
               </div>
               <div className="task-stats">
-                <div className="task-reward">{task.reward} ETH</div>
+                <div className="task-reward">{task.reward} OKB</div>
                 {activeTab === 'browse' && <div className="task-bids">{task.bids} bids</div>}
-                {activeTab === 'myBids' && <div className="task-bids">Your bid: {task.myBid} ETH</div>}
+                {activeTab === 'myBids' && <div className="task-bids">Your bid: {task.myBid} OKB</div>}
                 {task.progress !== undefined && (
                   <div className="task-progress">
                     <div className="progress-bar small">
@@ -1153,26 +1129,32 @@ function TaskMarket({ contracts, account }) {
 function Reputation({ contracts, account }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [stakeAmount, setStakeAmount] = useState('');
+  const [onChainReputation, setOnChainReputation] = useState(0);
+  const [onChainStaked, setOnChainStaked] = useState('0');
+
+  useEffect(() => {
+    if (!account || !contracts.reputationStake) return;
+    contracts.reputationStake.getAgentProfile(account)
+      .then(p => setOnChainReputation(Number(p.reputation || 0)))
+      .catch(() => setOnChainReputation(0));
+    contracts.reputationStake.totalStaked()
+      .then(s => setOnChainStaked(Number(ethers.formatEther(s)).toFixed(3)))
+      .catch(() => setOnChainStaked('0'));
+  }, [account, contracts.reputationStake]);
 
   const reputationData = {
-    score: 847,
-    rank: 'Elite',
-    totalStaked: '45.2',
-    pendingRewards: '2.34',
-    history: [
-      { date: '2026-04-10', event: 'Completed Covenant #2847', change: +15, type: 'positive' },
-      { date: '2026-04-05', event: 'Delivered Task Early', change: +8, type: 'positive' },
-      { date: '2026-03-28', event: 'Minor Dispute Resolved', change: -3, type: 'negative' },
-      { date: '2026-03-20', event: '5-Star Rating Received', change: +12, type: 'positive' },
-      { date: '2026-03-15', event: 'Staked Additional 10 ETH', change: +5, type: 'neutral' },
-    ],
+    score: onChainReputation,
+    rank: onChainReputation > 0 ? 'Agent' : 'Unranked',
+    totalStaked: onChainStaked,
+    pendingRewards: '0',
+    history: [],
     stats: {
-      covenantsCompleted: 42,
-      tasksCompleted: 156,
-      disputesWon: 8,
-      disputesLost: 1,
-      avgRating: 4.8,
-      responseTime: '2.3h',
+      covenantsCompleted: 0,
+      tasksCompleted: 0,
+      disputesWon: 0,
+      disputesLost: 0,
+      avgRating: 0,
+      responseTime: '—',
     }
   };
 
@@ -1274,21 +1256,21 @@ function Reputation({ contracts, account }) {
           <div className="staking-stats">
             <div className="stat-card">
               <span className="stat-label">Total Staked</span>
-              <span className="stat-value">{reputationData.totalStaked} ETH</span>
+              <span className="stat-value">{reputationData.totalStaked} OKB</span>
             </div>
             <div className="stat-card">
               <span className="stat-label">Pending Rewards</span>
-              <span className="stat-value">{reputationData.pendingRewards} ETH</span>
+              <span className="stat-value">{reputationData.pendingRewards} OKB</span>
             </div>
             <div className="stat-card">
               <span className="stat-label">APR</span>
-              <span className="stat-value">12.5%</span>
+              <span className="stat-value">—</span>
             </div>
           </div>
 
           <div className="staking-actions">
             <div className="action-card">
-              <h4>Stake ETH</h4>
+              <h4>Stake OKB</h4>
               <p>Increase your reputation weight and earn rewards</p>
               <div className="form-group">
                 <input
@@ -1304,14 +1286,14 @@ function Reputation({ contracts, account }) {
 
             <div className="action-card">
               <h4>Withdraw</h4>
-              <p>Unstake your ETH (7-day cooldown)</p>
+              <p>Unstake your OKB (7-day cooldown)</p>
               <button className="btn btn-secondary">Initiate Withdrawal</button>
             </div>
 
             <div className="action-card">
               <h4>Claim Rewards</h4>
               <p>Collect your earned staking rewards</p>
-              <button className="btn btn-primary">Claim {reputationData.pendingRewards} ETH</button>
+              <button className="btn btn-primary">Claim {reputationData.pendingRewards} OKB</button>
             </div>
           </div>
 
@@ -1415,7 +1397,7 @@ function Disputes({ contracts, account }) {
           <div className="dispute-meta">
             <div className="meta-item">
               <span>Amount at Stake</span>
-              <strong>{dispute.amount} ETH</strong>
+              <strong>{dispute.amount} OKB</strong>
             </div>
             <div className="meta-item">
               <span>Time Remaining</span>
@@ -1523,7 +1505,7 @@ function Disputes({ contracts, account }) {
                 {dispute.resolution && <p className="resolution-text">{dispute.resolution}</p>}
               </div>
               <div className="dispute-stats">
-                <span className="amount">{dispute.amount} ETH</span>
+                <span className="amount">{dispute.amount} OKB</span>
                 <span className={`status ${dispute.status}`}>{dispute.status}</span>
                 {dispute.timeRemaining && <span className="time">{dispute.timeRemaining} left</span>}
                 {dispute.winner && <span className="winner">Winner: {dispute.winner.slice(0, 6)}...</span>}
@@ -1701,7 +1683,7 @@ function LoyaltyPage({ onTestLoyalty, contracts, account }) {
             >
               <div className="task-main">
                 <h4>{covenant.title}</h4>
-                <p>Covenant #{covenant.id} • {covenant.amount} ETH</p>
+                <p>Covenant #{covenant.id} • {covenant.amount} OKB</p>
                 <div className="task-tags">
                   <span className={`loyalty-badge ${badge.class}`}>{badge.label}</span>
                   <span className="status-tag" style={{ 
