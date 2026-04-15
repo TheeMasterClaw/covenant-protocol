@@ -22,7 +22,7 @@ const xLayerMainnet = {
 
 // X Layer Testnet configuration
 const xLayerTest = {
-  id: 195,
+  id: 1952,
   name: 'X Layer Testnet',
   nativeCurrency: {
     decimals: 18,

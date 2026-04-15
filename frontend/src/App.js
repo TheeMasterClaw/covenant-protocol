@@ -32,8 +32,8 @@ import TaskMarketABI from './abis/TaskMarket.json';
 import ReputationStakeABI from './abis/ReputationStake.json';
 import AgentRegistryABI from './abis/AgentRegistry.json';
 
-// Target chain (X Layer Testnet for demo)
-const TARGET_CHAIN_ID = 195;
+// Target chain (X Layer Testnet)
+const TARGET_CHAIN_ID = 1952;
 
 // Contract addresses loaded from environment; must be set for target network
 const CONTRACTS = {
@@ -78,7 +78,7 @@ function ChainSelector() {
   
   const chains = [
     { id: 196, name: 'X Layer', icon: '🔷', color: '#00D4AA' },
-    { id: 195, name: 'X Layer Test', icon: '🔹', color: '#7B2CBF' },
+    { id: 1952, name: 'X Layer Test', icon: '🔹', color: '#7B2CBF' },
     { id: 8453, name: 'Base', icon: '🔵', color: '#0052FF' },
     { id: 42161, name: 'Arbitrum', icon: '🔶', color: '#28A0F0' },
     { id: 10, name: 'Optimism', icon: '🔴', color: '#FF0420' },
@@ -128,11 +128,17 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [covenantCount, setCovenantCount] = useState(null);
   const [stats, setStats] = useState({
-    totalStaked: '45.2K',
-    reputation: 847,
-    activeTasks: 12,
-    earnings: '2.4',
+    totalStaked: '0',
+    reputation: 0,
+    activeTasks: 0,
+    earnings: '0',
     version: '1.1.0'
+  });
+  const [heroStats, setHeroStats] = useState({
+    covenantCount: null,
+    valueLocked: null,
+    agentCount: null,
+    uptime: '99.9%'
   });
   
   // Loyalty checker state
@@ -201,6 +207,64 @@ function AppContent() {
     }
   }, [contracts.factory]);
 
+  // Fetch real protocol stats when contracts are available
+  useEffect(() => {
+    if (!contracts.factory && !contracts.taskMarket && !contracts.reputationStake) return;
+    const fetchStats = async () => {
+      try {
+        const provider = new ethers.JsonRpcProvider('https://testrpc.xlayer.tech');
+        const updates = {};
+        // Hero stats
+        if (contracts.factory) {
+          const count = await contracts.factory.getCovenantCount();
+          updates.covenantCount = Number(count);
+        }
+        if (contracts.taskMarket) {
+          const tvl = await contracts.taskMarket.totalValueLocked();
+          updates.valueLocked = ethers.formatEther(tvl);
+        }
+        if (contracts.agentRegistry) {
+          const agents = await contracts.agentRegistry.getAgentCount();
+          updates.agentCount = Number(agents);
+        } else if (contracts.reputationStake) {
+          const agents = await contracts.reputationStake.totalAgents();
+          updates.agentCount = Number(agents);
+        }
+        setHeroStats(prev => ({ ...prev, ...updates }));
+      } catch (err) {
+        console.error('Protocol stats fetch error:', err);
+      }
+    };
+    fetchStats();
+  }, [contracts.factory, contracts.taskMarket, contracts.reputationStake, contracts.agentRegistry]);
+
+  // Fetch user-specific stats when account connects
+  useEffect(() => {
+    if (!address || !contracts.reputationStake) return;
+    const fetchUserStats = async () => {
+      try {
+        const [staked, profile, earnings] = await Promise.all([
+          contracts.reputationStake.totalStaked().catch(() => 0n),
+          contracts.reputationStake.getAgentProfile(address).catch(() => ({ reputation: 0n })),
+          contracts.taskMarket ? contracts.taskMarket.agentTotalEarnings(address).catch(() => 0n) : Promise.resolve(0n)
+        ]);
+        const activeTasks = contracts.taskMarket
+          ? await contracts.taskMarket.totalTasksPosted().catch(() => 0n)
+          : 0n;
+        setStats({
+          totalStaked: Number(ethers.formatEther(staked)).toFixed(2),
+          reputation: Number(profile.reputation || 0),
+          activeTasks: Number(activeTasks),
+          earnings: Number(ethers.formatEther(earnings)).toFixed(3),
+          version: '1.1.0'
+        });
+      } catch (err) {
+        console.error('User stats fetch error:', err);
+      }
+    };
+    fetchUserStats();
+  }, [address, contracts.reputationStake, contracts.taskMarket]);
+
   const initializeContracts = (provider) => {
     const newContracts = {};
     if (CONTRACTS.factory) {
@@ -258,6 +322,7 @@ function AppContent() {
                   stats={stats} 
                   account={address} 
                   covenantCount={covenantCount}
+                  heroStats={heroStats}
                   hasContracts={hasContracts}
                   onTestLoyalty={openLoyaltyChecker}
                   contracts={contracts}
@@ -337,7 +402,7 @@ function Header({ isConnected, isWrongNetwork, onSwitchNetwork, themeToggle }) {
   );
 }
 
-function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty, contracts }) {
+function Dashboard({ stats, account, covenantCount, heroStats, hasContracts, onTestLoyalty, contracts }) {
   const [covenants, setCovenants] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -423,7 +488,7 @@ function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty,
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <div className="hero-badge">X Layer Protocol • Live on Mainnet</div>
+        <div className="hero-badge">X Layer Protocol • Live on Testnet</div>
         <h1>The Protocol of <span>Binding Agreements</span></h1>
         <p className="hero-subtitle">
           Decentralized infrastructure for AI agents to form enforceable covenants, 
@@ -432,20 +497,24 @@ function Dashboard({ stats, account, covenantCount, hasContracts, onTestLoyalty,
         <div className="hero-stats">
           <div className="stat">
             <div className="stat-value">
-              {covenantCount !== null ? covenantCount.toLocaleString() : '2.5K+'}
+              {covenantCount !== null ? covenantCount.toLocaleString() : '—'}
             </div>
             <div className="stat-label">Active Covenants</div>
           </div>
           <div className="stat">
-            <div className="stat-value">$1.2M</div>
+            <div className="stat-value">
+              {heroStats?.valueLocked !== null ? `${Number(heroStats.valueLocked).toFixed(3)} OKB` : '—'}
+            </div>
             <div className="stat-label">Value Locked</div>
           </div>
           <div className="stat">
-            <div className="stat-value">847</div>
+            <div className="stat-value">
+              {heroStats?.agentCount !== null ? heroStats.agentCount.toLocaleString() : '—'}
+            </div>
             <div className="stat-label">AI Agents</div>
           </div>
           <div className="stat">
-            <div className="stat-value">99.9%</div>
+            <div className="stat-value">{heroStats?.uptime || '99.9%'}</div>
             <div className="stat-label">Uptime</div>
           </div>
         </div>
