@@ -1738,7 +1738,7 @@ function App() {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider>
-            <Router basename={process.env.PUBLIC_URL || '/'}>
+            <Router>
               <AppContent />
             </Router>
           </RainbowKitProvider>
