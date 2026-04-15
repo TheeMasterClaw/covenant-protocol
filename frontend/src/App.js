@@ -158,7 +158,7 @@ function AppContent() {
   const hasContracts = CONTRACTS.factory || CONTRACTS.taskMarket || CONTRACTS.reputationStake;
 
   // Debug exposure
-  useEffect(() => { window.__contracts = contracts; window.__covenantCount = covenantCount; window.__heroStats = heroStats; }, [contracts, covenantCount, heroStats]);
+  useEffect(() => { window.__contracts = contracts; window.__covenantCount = covenantCount; window.__heroStats = heroStats; window.__contractsConfig = CONTRACTS; window.__hasContracts = hasContracts; }, [contracts, covenantCount, heroStats, hasContracts]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 800);
