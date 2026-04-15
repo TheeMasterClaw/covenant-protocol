@@ -1,4 +1,5 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+
 // X Layer Mainnet configuration
 export const xLayerMainnet = {
   id: 196,
@@ -36,9 +37,14 @@ export const xLayerTest = {
   testnet: true,
 } as const;
 
+// WalletConnect Cloud project ID — get yours free at https://cloud.walletconnect.com
+// Without a valid ID the connect modal will not open.
+const WALLETCONNECT_PROJECT_ID =
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '21fef48091f12692cad574a6f7753643';
+
 export const config = getDefaultConfig({
   appName: 'COVENANT Protocol',
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'covenant-protocol-demo',
+  projectId: WALLETCONNECT_PROJECT_ID,
   chains: [xLayerTest, xLayerMainnet],
   ssr: true,
 });
