@@ -1,6 +1,4 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { xLayer } from 'wagmi/chains';
-import { xLayerTestnet } from 'wagmi/chains';
 
 // X Layer Mainnet configuration
 const xLayerMainnet = {

@@ -35,7 +35,7 @@ export function Footer() {
           <a href="https://docs.covenant.io" target="_blank" rel="noopener noreferrer">Documentation</a>
           <a href="https://github.com/TheMasterClaw/covenant" target="_blank" rel="noopener noreferrer">GitHub</a>
           <a href="https://explorer.xlayer.tech" target="_blank" rel="noopener noreferrer">X Layer Explorer</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); alert('Whitepaper coming soon'); }}>Whitepaper</a>
+          <button className="link-button" onClick={() => alert('Whitepaper coming soon')} type="button">Whitepaper</button>
         </div>
         
         <div className="footer-links">

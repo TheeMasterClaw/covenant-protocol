@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ethers } from 'ethers';
 import './App.css';
 
@@ -16,10 +16,9 @@ import { config } from './wagmi';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PageLoader } from './components/LoadingSkeleton';
 import { ToastContainer, useToast } from './components/Toast';
-import { useTransaction, TransactionModal } from './components/TransactionProgress';
+import { useTransaction } from './components/TransactionProgress';
 import { PageTransition } from './components/PageTransition';
 import { ThemeToggle } from './components/ThemeToggle';
-import { AgentDiscovery } from './components/AgentDiscovery';
 import { CovenantMaker } from './components/CovenantMaker';
 import { Footer } from './components/Footer';
 import { VowLoyaltyChecker } from './components/VowLoyaltyChecker';
@@ -151,9 +150,8 @@ function AppContent() {
   const { switchChain } = useSwitchChain();
   
   // Legacy hooks
-  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const { toasts, removeToast, success, error, info } = useToast();
+  const { toasts, removeToast, success, info } = useToast();
   const { TransactionModal: TransactionModalComponent } = useTransaction();
 
   // Check if contracts are configured
@@ -164,32 +162,30 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Initialize ethers provider and contracts when wallet connects
+  // Initialize ethers provider and contracts
   useEffect(() => {
-    if (isConnected && window.ethereum) {
-      const init = async () => {
-        try {
-          const ethersProvider = new ethers.BrowserProvider(window.ethereum);
+    const init = async () => {
+      try {
+        let ethersProvider;
+        if (isConnected && window.ethereum) {
+          ethersProvider = new ethers.BrowserProvider(window.ethereum);
           setProvider(ethersProvider);
-          
-          if (hasContracts) {
-            initializeContracts(ethersProvider);
-          }
-          
           const network = await ethersProvider.getNetwork();
           if (Number(network.chainId) !== TARGET_CHAIN_ID) {
             info('Network Notice', 'Please switch to X Layer Testnet for full functionality');
           }
-        } catch (err) {
-          console.error('Provider init error:', err);
+        } else {
+          ethersProvider = new ethers.JsonRpcProvider('https://testrpc.xlayer.tech');
+          setProvider(ethersProvider);
         }
-      };
-      init();
-    } else {
-      setProvider(null);
-      setContracts({});
-      setCovenantCount(null);
-    }
+        if (hasContracts) {
+          initializeContracts(ethersProvider);
+        }
+      } catch (err) {
+        console.error('Provider init error:', err);
+      }
+    };
+    init();
   }, [isConnected, hasContracts, info]);
 
   // Fetch real covenant count when factory contract is available
@@ -212,7 +208,6 @@ function AppContent() {
     if (!contracts.factory && !contracts.taskMarket && !contracts.reputationStake) return;
     const fetchStats = async () => {
       try {
-        const provider = new ethers.JsonRpcProvider('https://testrpc.xlayer.tech');
         const updates = {};
         // Hero stats
         if (contracts.factory) {
@@ -556,7 +551,7 @@ function Dashboard({ stats, account, covenantCount, heroStats, hasContracts, onT
             <div className="card-icon icon-blue">⚡</div>
           </div>
           <div className="card-value">{stats.totalStaked}</div>
-          <div className="card-change change-positive">↑ 12.5% this month</div>
+          <div className="card-change">OKB staked in protocol</div>
         </div>
         <div className="card">
           <div className="card-header">
@@ -564,7 +559,7 @@ function Dashboard({ stats, account, covenantCount, heroStats, hasContracts, onT
             <div className="card-icon icon-purple">★</div>
           </div>
           <div className="card-value">{stats.reputation}</div>
-          <div className="card-change change-positive">↑ 23 points this week</div>
+          <div className="card-change">Reputation score</div>
         </div>
         <div className="card">
           <div className="card-header">
@@ -572,15 +567,15 @@ function Dashboard({ stats, account, covenantCount, heroStats, hasContracts, onT
             <div className="card-icon icon-green">✓</div>
           </div>
           <div className="card-value">{stats.activeTasks}</div>
-          <div className="card-change">4 pending completion</div>
+          <div className="card-change">Tasks posted on market</div>
         </div>
         <div className="card">
           <div className="card-header">
             <div className="card-title">Earnings</div>
             <div className="card-icon icon-orange">◈</div>
           </div>
-          <div className="card-value">{stats.earnings} ETH</div>
-          <div className="card-change change-positive">↑ 8.2% this week</div>
+          <div className="card-value">{stats.earnings} OKB</div>
+          <div className="card-change">Lifetime earnings</div>
         </div>
       </motion.div>
 

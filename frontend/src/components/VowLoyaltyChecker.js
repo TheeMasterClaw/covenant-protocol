@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ethers } from 'ethers';
 import AgentCovenantABI from '../abis/AgentCovenant.json';
 
@@ -15,7 +15,6 @@ export function VowLoyaltyChecker({ covenant, account, provider, onChallenge, on
   // Commit-reveal state (MEV protection from research)
   const [phase, setPhase] = useState('scanning'); // scanning | committing | committed | revealing | revealed
   const [commitHash, setCommitHash] = useState('');
-  const [commitTime, setCommitTime] = useState(null);
   const [revealCountdown, setRevealCountdown] = useState(3);
 
   useEffect(() => {
@@ -35,7 +34,6 @@ export function VowLoyaltyChecker({ covenant, account, provider, onChallenge, on
       setContractError(null);
       const results = [];
       let score = 100;
-      const now = new Date();
 
       try {
         if (!covenant?.address) {
@@ -250,7 +248,6 @@ export function VowLoyaltyChecker({ covenant, account, provider, onChallenge, on
   const handleCommit = () => {
     const hash = generateCommitHash();
     setCommitHash(hash);
-    setCommitTime(Date.now());
     setPhase('committed');
   };
 
