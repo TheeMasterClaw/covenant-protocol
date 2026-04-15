@@ -157,6 +157,9 @@ function AppContent() {
   // Check if contracts are configured
   const hasContracts = CONTRACTS.factory || CONTRACTS.taskMarket || CONTRACTS.reputationStake;
 
+  // Debug exposure
+  useEffect(() => { window.__contracts = contracts; window.__covenantCount = covenantCount; window.__heroStats = heroStats; }, [contracts, covenantCount, heroStats]);
+
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(timer);
