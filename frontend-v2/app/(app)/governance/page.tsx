@@ -9,13 +9,17 @@ import { PageHeader } from '@/components/layout/page-header';
 import { EmptyState } from '@/components/layout/empty-state';
 import { ProposalCard, Proposal } from '@/components/governance/proposal-card';
 import { TreasuryStats } from '@/components/governance/treasury-stats';
-
-const proposals: Proposal[] = [];
-
-const treasuryAllocations = [];
+import { useProtocolStats, formatEther } from '@/hooks/use-contracts';
 
 export default function GovernancePage() {
   const [activeTab, setActiveTab] = useState<'proposals' | 'treasury'>('proposals');
+  const protocol = useProtocolStats();
+
+  const proposals: Proposal[] = [];
+
+  const treasuryAllocations = protocol.totalValueLocked != null && protocol.totalValueLocked > 0n
+    ? [{ name: 'Task Rewards', value: Number(formatEther(protocol.totalValueLocked)), percentage: 100 }]
+    : [];
 
   return (
     <div className="space-y-6">
@@ -68,8 +72,8 @@ export default function GovernancePage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <TreasuryStats
-            totalValue="1,291.2"
-            monthlyChange={8.4}
+            totalValue={protocol.totalValueLocked != null ? formatEther(protocol.totalValueLocked) : '0'}
+            monthlyChange={0}
             allocations={treasuryAllocations}
           />
         </motion.div>

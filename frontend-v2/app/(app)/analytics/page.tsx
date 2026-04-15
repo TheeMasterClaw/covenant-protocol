@@ -5,10 +5,11 @@ import { PageHeader } from '@/components/layout/page-header';
 import { MetricsCard } from '@/components/analytics/metrics-card';
 import { ActivityChart } from '@/components/analytics/activity-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  FileText, 
-  Briefcase, 
-  Scale, 
+import { useProtocolStats, formatEther } from '@/hooks/use-contracts';
+import {
+  FileText,
+  Briefcase,
+  Scale,
   Users,
   TrendingUp,
   Activity,
@@ -16,44 +17,62 @@ import {
   Star
 } from 'lucide-react';
 
-const protocolMetrics = [
-  { title: 'Total Covenants', value: '2,847', change: 12.5, changeLabel: 'vs last month', icon: <FileText className="w-6 h-6 text-primary" /> },
-  { title: 'Tasks Completed', value: '15,234', change: 8.2, changeLabel: 'vs last month', icon: <Briefcase className="w-6 h-6 text-primary" /> },
-  { title: 'Disputes Resolved', value: '892', change: -2.1, changeLabel: 'vs last month', icon: <Scale className="w-6 h-6 text-primary" /> },
-  { title: 'Active Agents', value: '3,456', change: 18.7, changeLabel: 'vs last month', icon: <Users className="w-6 h-6 text-primary" /> },
-];
-
 const covenantData = [
-  { label: 'Mon', value: 45, previousValue: 38 },
-  { label: 'Tue', value: 52, previousValue: 42 },
-  { label: 'Wed', value: 38, previousValue: 45 },
-  { label: 'Thu', value: 65, previousValue: 48 },
-  { label: 'Fri', value: 78, previousValue: 55 },
-  { label: 'Sat', value: 42, previousValue: 35 },
-  { label: 'Sun', value: 58, previousValue: 40 },
+  { label: 'Mon', value: 0, previousValue: 0 },
+  { label: 'Tue', value: 0, previousValue: 0 },
+  { label: 'Wed', value: 0, previousValue: 0 },
+  { label: 'Thu', value: 0, previousValue: 0 },
+  { label: 'Fri', value: 0, previousValue: 0 },
+  { label: 'Sat', value: 0, previousValue: 0 },
+  { label: 'Sun', value: 0, previousValue: 0 },
 ];
 
 const taskData = [
-  { label: 'W1', value: 120, previousValue: 95 },
-  { label: 'W2', value: 145, previousValue: 110 },
-  { label: 'W3', value: 132, previousValue: 125 },
-  { label: 'W4', value: 178, previousValue: 140 },
-];
-
-const topCategories = [
-  { category: 'Development', count: 845, percentage: 35 },
-  { category: 'Security Audit', count: 423, percentage: 18 },
-  { category: 'Data Analysis', count: 312, percentage: 13 },
-  { category: 'Marketing', count: 289, percentage: 12 },
-  { category: 'DeFi Strategy', count: 234, percentage: 10 },
+  { label: 'W1', value: 0, previousValue: 0 },
+  { label: 'W2', value: 0, previousValue: 0 },
+  { label: 'W3', value: 0, previousValue: 0 },
+  { label: 'W4', value: 0, previousValue: 0 },
 ];
 
 export default function AnalyticsPage() {
+  const protocol = useProtocolStats();
+
+  const protocolMetrics = [
+    {
+      title: 'Total Covenants',
+      value: protocol.totalCovenants?.toString() ?? '--',
+      change: 0,
+      changeLabel: 'on-chain',
+      icon: <FileText className="w-6 h-6 text-primary" />
+    },
+    {
+      title: 'Tasks Completed',
+      value: protocol.totalTasksCompleted?.toString() ?? '--',
+      change: 0,
+      changeLabel: 'on-chain',
+      icon: <Briefcase className="w-6 h-6 text-primary" />
+    },
+    {
+      title: 'Disputes Filed',
+      value: protocol.nextDisputeId != null ? protocol.nextDisputeId.toString() : '--',
+      change: 0,
+      changeLabel: 'on-chain',
+      icon: <Scale className="w-6 h-6 text-primary" />
+    },
+    {
+      title: 'Registered Agents',
+      value: protocol.totalAgents?.toString() ?? '--',
+      change: 0,
+      changeLabel: 'on-chain',
+      icon: <Users className="w-6 h-6 text-primary" />
+    },
+  ];
+
   return (
     <div className="space-y-8">
       <PageHeader
         title="Analytics"
-        subtitle="Protocol-wide metrics and performance insights"
+        subtitle="Protocol-wide metrics and performance insights — live from X Layer Testnet"
       />
 
       {/* Protocol Metrics */}
@@ -98,16 +117,17 @@ export default function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">$1.24M</div>
-            <div className="flex items-center gap-1 mt-1 text-emerald-500">
+            <div className="text-3xl font-bold">
+              {protocol.totalValueLocked != null ? `${formatEther(protocol.totalValueLocked)} OKB` : '--'}
+            </div>
+            <div className="flex items-center gap-1 mt-1 text-muted-foreground">
               <TrendingUp className="w-4 h-4" />
-              <span>+23.5% this month</span>
+              <span>TaskMarket TVL</span>
             </div>
             <div className="mt-4 space-y-2">
               {[
-                { label: 'ETH', value: '$892K', percentage: 72 },
-                { label: 'OKB', value: '$234K', percentage: 19 },
-                { label: 'USDT', value: '$114K', percentage: 9 },
+                { label: 'Task Rewards (OKB)', value: protocol.totalValueLocked != null ? `${formatEther(protocol.totalValueLocked)}` : '--', percentage: protocol.totalValueLocked != null && protocol.totalValueLocked > 0n ? 100 : 0 },
+                { label: 'Staked (COV)', value: protocol.totalStaked != null ? `${formatEther(protocol.totalStaked)}` : '--', percentage: protocol.totalStaked != null && protocol.totalStaked > 0n ? 100 : 0 },
               ].map((item) => (
                 <div key={item.label} className="space-y-1">
                   <div className="flex justify-between text-sm">
@@ -127,29 +147,26 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Star className="w-5 h-5" />
-              Top Categories
+              Protocol Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {topCategories.map((cat, i) => (
+              {[
+                { label: 'Total Tasks Posted', value: protocol.totalTasksPosted?.toString() ?? '0' },
+                { label: 'Tasks Completed', value: protocol.totalTasksCompleted?.toString() ?? '0' },
+                { label: 'Staked Agents', value: protocol.stakedAgents?.toString() ?? '0' },
+                { label: 'Total Disputes', value: protocol.nextDisputeId?.toString() ?? '0' },
+              ].map((item, i) => (
                 <motion.div
-                  key={cat.category}
+                  key={item.label}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="space-y-1"
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                 >
-                  <div className="flex justify-between text-sm">
-                    <span>{cat.category}</span>
-                    <span className="text-muted-foreground">{cat.count}</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary"
-                      style={{ width: `${cat.percentage}%` }}
-                    />
-                  </div>
+                  <span className="text-sm">{item.label}</span>
+                  <span className="text-sm font-medium">{item.value}</span>
                 </motion.div>
               ))}
             </div>
@@ -165,10 +182,10 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { label: 'Uptime', value: '99.97%', status: 'good' },
-              { label: 'Avg Block Time', value: '2.1s', status: 'good' },
-              { label: 'Gas Price', value: '0.002 OKB', status: 'good' },
-              { label: 'Active Validators', value: '42/45', status: 'warning' },
+              { label: 'Network', value: 'X Layer Testnet', status: 'good' },
+              { label: 'Chain ID', value: '1952', status: 'good' },
+              { label: 'Contracts', value: '6 deployed', status: 'good' },
+              { label: 'Status', value: protocol.isLoading ? 'Loading...' : protocol.error ? 'Error' : 'Operational', status: protocol.error ? 'warn' : 'good' },
             ].map((item) => (
               <div key={item.label} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <span className="text-sm">{item.label}</span>

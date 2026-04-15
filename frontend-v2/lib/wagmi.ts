@@ -1,6 +1,4 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { xLayer, xLayerTestnet } from 'wagmi/chains';
-
 // X Layer Mainnet configuration
 export const xLayerMainnet = {
   id: 196,
@@ -21,7 +19,7 @@ export const xLayerMainnet = {
 
 // X Layer Testnet configuration
 export const xLayerTest = {
-  id: 195,
+  id: 1952,
   name: 'X Layer Testnet',
   nativeCurrency: {
     decimals: 18,

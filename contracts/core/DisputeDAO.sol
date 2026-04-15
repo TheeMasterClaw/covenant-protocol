@@ -66,14 +66,15 @@ contract DisputeDAO is ReentrancyGuard {
     }
 
     // ============ State Variables ============
-    
+
     IERC20 public stakingToken;
     IReputationStake public reputationStake;
-    
+
     uint256 public nextDisputeId = 1;
     mapping(uint256 => Dispute) public disputes;
     mapping(address => JurorProfile) public jurors;
     mapping(address => uint256[]) public jurorCases;
+    address[] public registeredJurors; // Pool of registered juror addresses
     
     // Parameters
     uint256 public minJurorStake = 1000e18; // 1000 tokens
@@ -162,6 +163,8 @@ contract DisputeDAO is ReentrancyGuard {
             rewardsEarned: 0,
             lastActivity: block.timestamp
         });
+
+        registeredJurors.push(msg.sender);
     }
     
     function unstakeAsJuror() external nonReentrant {
@@ -196,7 +199,7 @@ contract DisputeDAO is ReentrancyGuard {
         require(msg.value >= disputeFee, "Insufficient fee");
         
         ICovenant covenant = ICovenant(_covenant);
-        require(uint256(covenant.status()) == 3, "Covenant not disputed"); // DISPUTED status
+        require(covenant.status() == ICovenant.CovenantStatus.DISPUTED, "Covenant not disputed");
         
         disputeId = nextDisputeId++;
         Dispute storage d = disputes[disputeId];
@@ -222,35 +225,48 @@ contract DisputeDAO is ReentrancyGuard {
     
     function _selectJurors(uint256 _disputeId) internal {
         Dispute storage d = disputes[_disputeId];
-        
-        // In production, this would use Chainlink VRF for random selection
-        // For now, use pseudo-random based on block hash
-        for (uint256 i = 0; i < jurorCount; i++) {
-            address juror = _getRandomJuror(_disputeId, i);
-            if (juror != address(0)) {
-                d.jurors.push(juror);
-                jurorCases[juror].push(_disputeId);
-                d.jurorReputation[juror] = jurors[juror].reputation;
-                emit JurorSelected(_disputeId, juror);
-            }
+        uint256 pool = registeredJurors.length;
+
+        // Select jurors from the registered pool using pseudo-random shuffle
+        // NOTE: In production, replace with Chainlink VRF for tamper-proof randomness
+        uint256 selected = 0;
+        for (uint256 i = 0; i < pool && selected < jurorCount; i++) {
+            address candidate = _getRandomJuror(_disputeId, i, pool);
+            if (candidate == address(0)) continue;
+            if (!jurors[candidate].isActive) continue;
+            if (candidate == d.initiator || candidate == d.counterparty) continue;
+            if (_isAlreadySelected(d, candidate)) continue;
+
+            d.jurors.push(candidate);
+            jurorCases[candidate].push(_disputeId);
+            d.jurorReputation[candidate] = jurors[candidate].reputation;
+            selected++;
+            emit JurorSelected(_disputeId, candidate);
         }
-        
+
         require(d.jurors.length >= 3, "Insufficient jurors");
         d.status = DisputeStatus.EVIDENCE;
     }
-    
-    function _getRandomJuror(uint256 _disputeId, uint256 _salt) internal view returns (address) {
-        // Simplified - in production use Chainlink VRF
+
+    function _getRandomJuror(uint256 _disputeId, uint256 _salt, uint256 _poolSize) internal view returns (address) {
+        if (_poolSize == 0) return address(0);
+
         bytes32 hash = keccak256(abi.encodePacked(
             blockhash(block.number - 1),
             _disputeId,
             _salt,
             block.timestamp
         ));
-        
-        // This would iterate through registered jurors
-        // Simplified for demo
-        return address(uint160(uint256(hash)));
+
+        uint256 index = uint256(hash) % _poolSize;
+        return registeredJurors[index];
+    }
+
+    function _isAlreadySelected(Dispute storage d, address _candidate) internal view returns (bool) {
+        for (uint256 i = 0; i < d.jurors.length; i++) {
+            if (d.jurors[i] == _candidate) return true;
+        }
+        return false;
     }
     
     // ============ Evidence Phase ============

@@ -230,10 +230,20 @@ contract ReputationStake {
         if (!profile.isActive) return 0;
         
         // Stake component (0-400 points)
-        uint256 stakeScore = profile.totalStaked > 0 
-            ? (profile.totalStaked * stakeWeight) / minimumStake 
-            : 0;
-        if (stakeScore > 400) stakeScore = 400;
+        // Uses logarithmic scaling: each doubling of minimumStake adds ~60 points
+        // This avoids a cliff effect where 10x stake instantly caps the score
+        uint256 stakeScore = 0;
+        if (profile.totalStaked > 0) {
+            uint256 ratio = (profile.totalStaked * 100) / minimumStake; // ratio in percentage (100 = 1x)
+            if (ratio >= 100) {
+                // Base 100 points for meeting minimum, then +50 per multiple
+                stakeScore = 100 + ((ratio - 100) * 50) / 100;
+            } else {
+                // Below minimum: proportional score
+                stakeScore = ratio;
+            }
+            if (stakeScore > 400) stakeScore = 400;
+        }
         
         // History component (0-300 points)
         uint256 totalCovenants = profile.successfulCovenants + profile.breachedCovenants;

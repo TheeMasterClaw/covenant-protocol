@@ -3,7 +3,7 @@ import { useAccount, useWalletClient } from 'wagmi';
 import { createSmartAccountClient } from 'permissionless';
 import { createPaymasterClient, toSimpleSmartAccount } from 'viem/account-abstraction';
 import { http } from 'viem';
-import { xLayerTest, xLayer } from 'wagmi/chains';
+import { xLayerTest } from '@/lib/wagmi';
 
 const PAYMASTER_URL = `https://api.pimlico.io/v2/xlayer-testnet/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}`;
 const BUNDLER_URL = `https://api.pimlico.io/v2/xlayer-testnet/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}`;

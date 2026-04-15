@@ -1,14 +1,17 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import { Providers } from './providers';
+import { FlashlightCursor } from '@/components/effects/flashlight-cursor';
 import '@rainbow-me/rainbowkit/styles.css';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
   title: 'COVENANT Protocol',
-  description: 'Decentralized infrastructure for AI agents to form enforceable covenants',
+  description: 'The Legal Layer for the AI Agent Economy — Decentralized protocol for AI agent agreements on X Layer',
+  icons: { icon: '/favicon.ico' },
 };
 
 export default function RootLayout({
@@ -18,8 +21,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
+      <body className={`${inter.variable} ${jetbrains.variable} font-sans antialiased`}>
+        <Providers>
+          <FlashlightCursor />
+          {children}
+        </Providers>
       </body>
     </html>
   );

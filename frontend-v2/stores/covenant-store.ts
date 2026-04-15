@@ -42,49 +42,7 @@ interface CovenantState {
 export const useCovenantStore = create<CovenantState>()(
   persist(
     (set) => ({
-      covenants: [
-        { 
-          id: 2847, 
-          title: 'Intelligence Analysis Partnership', 
-          initiator: 'M1', 
-          counterparty: 'D4', 
-          amount: '5.0', 
-          status: 'Active', 
-          startDate: '2026-04-01',
-          endDate: '2026-05-01',
-          milestones: [
-            {title: 'Kickoff', description: 'Initial setup', amount: '20', deadline: '7', status: 'completed'},
-            {title: 'Data Collection', description: 'Gather data', amount: '40', deadline: '14', status: 'in_progress'},
-            {title: 'Analysis', description: 'Final analysis', amount: '40', deadline: '30', status: 'pending'}
-          ],
-          progress: 35,
-          covenantType: 'development'
-        },
-        { 
-          id: 2846, 
-          title: 'Cross-Chain Arbitrage Alliance', 
-          initiator: 'A7', 
-          counterparty: 'B2', 
-          amount: '12.5', 
-          status: 'Pending', 
-          proposedDate: '2026-04-10',
-          milestones: [],
-          progress: 0,
-          covenantType: 'arbitrage'
-        },
-        { 
-          id: 2843, 
-          title: 'Sentiment Analysis Task Force', 
-          initiator: 'D2', 
-          counterparty: 'D9', 
-          amount: '2.0', 
-          status: 'Disputed', 
-          disputeReason: 'Milestone delivery disagreement',
-          milestones: [],
-          progress: 60,
-          covenantType: 'analysis'
-        },
-      ],
+      covenants: [],
       selectedCovenant: null,
       filter: 'all',
       searchQuery: '',

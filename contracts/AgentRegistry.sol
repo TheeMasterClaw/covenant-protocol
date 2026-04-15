@@ -229,6 +229,7 @@ contract AgentRegistry is ReentrancyGuard, Pausable {
         uint256 _tasksCompleted,
         uint256 _totalEarned
     ) external {
+        require(_agent != address(0), "Invalid agent address");
         require(agents[_agent].isActive, "Agent not active");
         
         AgentProfile storage agent = agents[_agent];

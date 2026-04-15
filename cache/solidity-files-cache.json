@@ -1,8 +1,8 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "/home/azureuser/covenant/contracts/AgentCovenant.sol": {
-      "lastModificationDate": 1776012271256,
+    "/home/holyspirit/covenant/covenant-protocol/contracts/AgentCovenant.sol": {
+      "lastModificationDate": 1776280810012,
       "contentHash": "a3fe999670cc6f1bc9e9faf2ab48637c",
       "sourceName": "contracts/AgentCovenant.sol",
       "solcConfig": {
@@ -38,8 +38,8 @@
         "AgentCovenant"
       ]
     },
-    "/home/azureuser/covenant/contracts/CovenantFactory.sol": {
-      "lastModificationDate": 1776012271257,
+    "/home/holyspirit/covenant/covenant-protocol/contracts/CovenantFactory.sol": {
+      "lastModificationDate": 1776280810012,
       "contentHash": "4c4f31775a0d1cd39a3c271a3fa4cc72",
       "sourceName": "contracts/CovenantFactory.sol",
       "solcConfig": {
@@ -77,9 +77,9 @@
         "CovenantFactory"
       ]
     },
-    "/home/azureuser/covenant/contracts/AgentRegistry.sol": {
-      "lastModificationDate": 1776012271257,
-      "contentHash": "8de5452f0254628a783b1692ca65eaeb",
+    "/home/holyspirit/covenant/covenant-protocol/contracts/AgentRegistry.sol": {
+      "lastModificationDate": 1776286701310,
+      "contentHash": "d823b82036b201264e74d0b762bdcfff",
       "sourceName": "contracts/AgentRegistry.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -117,8 +117,8 @@
         "AgentRegistry"
       ]
     },
-    "/home/azureuser/covenant/contracts/utils/Pausable.sol": {
-      "lastModificationDate": 1776012271258,
+    "/home/holyspirit/covenant/covenant-protocol/contracts/utils/Pausable.sol": {
+      "lastModificationDate": 1776280810013,
       "contentHash": "c10fbfe65c364d9add1a302dae5440cf",
       "sourceName": "contracts/utils/Pausable.sol",
       "solcConfig": {
@@ -154,8 +154,8 @@
         "Pausable"
       ]
     },
-    "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol": {
-      "lastModificationDate": 1776012272907,
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol": {
+      "lastModificationDate": 1776280811778,
       "contentHash": "6e5efb502dd6652d12ad15eea2c5bdf4",
       "sourceName": "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
       "solcConfig": {
@@ -193,8 +193,8 @@
         "ReentrancyGuard"
       ]
     },
-    "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/utils/StorageSlot.sol": {
-      "lastModificationDate": 1776012272907,
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/utils/StorageSlot.sol": {
+      "lastModificationDate": 1776280811778,
       "contentHash": "e656d64c4ce918f3d13030b91c935134",
       "sourceName": "@openzeppelin/contracts/utils/StorageSlot.sol",
       "solcConfig": {
@@ -230,9 +230,9 @@
         "StorageSlot"
       ]
     },
-    "/home/azureuser/covenant/contracts/core/DisputeDAO.sol": {
-      "lastModificationDate": 1776012271257,
-      "contentHash": "8479e01a44b76e25602989e92228d7c4",
+    "/home/holyspirit/covenant/covenant-protocol/contracts/core/DisputeDAO.sol": {
+      "lastModificationDate": 1776286681232,
+      "contentHash": "d78703c8c3e615d3a7b83255995c9824",
       "sourceName": "contracts/core/DisputeDAO.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -272,8 +272,8 @@
         "DisputeDAO"
       ]
     },
-    "/home/azureuser/covenant/contracts/interfaces/ICovenant.sol": {
-      "lastModificationDate": 1776012271257,
+    "/home/holyspirit/covenant/covenant-protocol/contracts/interfaces/ICovenant.sol": {
+      "lastModificationDate": 1776280810012,
       "contentHash": "9684bcb1ba1fddd633d0b1040e2d4459",
       "sourceName": "contracts/interfaces/ICovenant.sol",
       "solcConfig": {
@@ -309,8 +309,8 @@
         "ICovenant"
       ]
     },
-    "/home/azureuser/covenant/contracts/interfaces/IReputationStake.sol": {
-      "lastModificationDate": 1776012271258,
+    "/home/holyspirit/covenant/covenant-protocol/contracts/interfaces/IReputationStake.sol": {
+      "lastModificationDate": 1776280810013,
       "contentHash": "a54df2b5cfebd897be9c291a71739fc8",
       "sourceName": "contracts/interfaces/IReputationStake.sol",
       "solcConfig": {
@@ -346,8 +346,8 @@
         "IReputationStake"
       ]
     },
-    "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
-      "lastModificationDate": 1776012272905,
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+      "lastModificationDate": 1776280811775,
       "contentHash": "9261adf6457863de3e9892f51317ec89",
       "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
       "solcConfig": {
@@ -383,8 +383,8 @@
         "IERC20"
       ]
     },
-    "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
-      "lastModificationDate": 1776012272905,
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
+      "lastModificationDate": 1776280811775,
       "contentHash": "513778b30d2750f5d2b9b19bbcf748a5",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
       "solcConfig": {
@@ -422,8 +422,8 @@
         "IERC20Metadata"
       ]
     },
-    "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol": {
-      "lastModificationDate": 1776012272905,
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol": {
+      "lastModificationDate": 1776280811775,
       "contentHash": "d15c4d05583536e080f1960ab282772d",
       "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
       "solcConfig": {
@@ -464,8 +464,8 @@
         "ERC20"
       ]
     },
-    "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/utils/Context.sol": {
-      "lastModificationDate": 1776012272907,
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/utils/Context.sol": {
+      "lastModificationDate": 1776280811778,
       "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",
       "solcConfig": {
@@ -501,8 +501,8 @@
         "Context"
       ]
     },
-    "/home/azureuser/covenant/node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol": {
-      "lastModificationDate": 1776012272902,
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol": {
+      "lastModificationDate": 1776280811772,
       "contentHash": "bcc76f4747d56c28c40ae272ef3470a6",
       "sourceName": "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
       "solcConfig": {
@@ -540,8 +540,8 @@
         "IERC721Errors"
       ]
     },
-    "/home/azureuser/covenant/contracts/MockERC20.sol": {
-      "lastModificationDate": 1776012271257,
+    "/home/holyspirit/covenant/covenant-protocol/contracts/MockERC20.sol": {
+      "lastModificationDate": 1776280810012,
       "contentHash": "d3138cf429523178e6b8cd5b5fafd338",
       "sourceName": "contracts/MockERC20.sol",
       "solcConfig": {
@@ -579,9 +579,9 @@
         "MockERC20"
       ]
     },
-    "/home/azureuser/covenant/contracts/ReputationStake.sol": {
-      "lastModificationDate": 1776012271257,
-      "contentHash": "53fa88e961ccbafa57d1c2bcd515dcc7",
+    "/home/holyspirit/covenant/covenant-protocol/contracts/ReputationStake.sol": {
+      "lastModificationDate": 1776286693396,
+      "contentHash": "4dc86af588e44fada8f69996249a58cd",
       "sourceName": "contracts/ReputationStake.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -618,8 +618,8 @@
         "ReputationStake"
       ]
     },
-    "/home/azureuser/covenant/contracts/TaskMarket.sol": {
-      "lastModificationDate": 1776012271257,
+    "/home/holyspirit/covenant/covenant-protocol/contracts/TaskMarket.sol": {
+      "lastModificationDate": 1776280810012,
       "contentHash": "d739d1b48c5756c91d891ac842f6a0dd",
       "sourceName": "contracts/TaskMarket.sol",
       "solcConfig": {
@@ -656,6 +656,240 @@
       ],
       "artifacts": [
         "TaskMarket"
+      ]
+    },
+    "/home/holyspirit/covenant/covenant-protocol/contracts/integrations/UniswapSkillRouter.sol": {
+      "lastModificationDate": 1776281513468,
+      "contentHash": "fdb1577b719e034b5240112a57852513",
+      "sourceName": "contracts/integrations/UniswapSkillRouter.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "@openzeppelin/contracts/utils/ReentrancyGuard.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IQuoterV2",
+        "ISwapRouter",
+        "UniswapSkillRouter"
+      ]
+    },
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol": {
+      "lastModificationDate": 1776280811776,
+      "contentHash": "bf8e9c3398d381dc66c5302267927386",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../IERC20.sol",
+        "../../../interfaces/IERC1363.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SafeERC20"
+      ]
+    },
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/interfaces/IERC1363.sol": {
+      "lastModificationDate": 1776280811772,
+      "contentHash": "a7fd0f05e36b0d0a21c75340c9c639ec",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC1363.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC20.sol",
+        "./IERC165.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.2"
+      ],
+      "artifacts": [
+        "IERC1363"
+      ]
+    },
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/interfaces/IERC20.sol": {
+      "lastModificationDate": 1776280811772,
+      "contentHash": "68620db2da7583d9a4919096ac77f577",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC20.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../token/ERC20/IERC20.sol"
+      ],
+      "versionPragmas": [
+        ">=0.4.16"
+      ],
+      "artifacts": []
+    },
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/interfaces/IERC165.sol": {
+      "lastModificationDate": 1776280811772,
+      "contentHash": "947853028399b7de34bcc3704ee06e99",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC165.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../utils/introspection/IERC165.sol"
+      ],
+      "versionPragmas": [
+        ">=0.4.16"
+      ],
+      "artifacts": []
+    },
+    "/home/holyspirit/covenant/covenant-protocol/node_modules/@openzeppelin/contracts/utils/introspection/IERC165.sol": {
+      "lastModificationDate": 1776280811782,
+      "contentHash": "7074c93b1ea0a122063f26ddd1db1032",
+      "sourceName": "@openzeppelin/contracts/utils/introspection/IERC165.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.4.16"
+      ],
+      "artifacts": [
+        "IERC165"
       ]
     }
   }

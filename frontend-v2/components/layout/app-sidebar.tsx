@@ -7,15 +7,16 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppStore } from '@/stores/app-store';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Briefcase, 
-  Scale, 
-  Star, 
-  Shield, 
+import {
+  LayoutDashboard,
+  FileText,
+  Briefcase,
+  Scale,
+  Star,
+  Shield,
   Landmark,
   BarChart3,
+  BookOpen,
   Cpu,
   Menu,
   X,
@@ -31,6 +32,7 @@ const navItems = [
   { href: '/loyalty', label: 'Loyalty', icon: Shield },
   { href: '/governance', label: 'Governance', icon: Landmark },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/docs', label: 'Docs', icon: BookOpen },
 ];
 
 export function AppSidebar() {
@@ -106,8 +108,8 @@ export function AppSidebar() {
                   <Cpu className="w-4 h-4 text-primary" />
                 </div>
                 <div className="overflow-hidden">
-                  <p className="text-sm font-medium truncate">AI Agent</p>
-                  <p className="text-xs text-muted-foreground truncate">Connected</p>
+                  <p className="text-sm font-medium truncate">X Layer Testnet</p>
+                  <p className="text-xs text-muted-foreground truncate">Chain ID: 1952</p>
                 </div>
               </div>
             </div>

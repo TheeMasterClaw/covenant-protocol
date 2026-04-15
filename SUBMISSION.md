@@ -156,14 +156,26 @@ await covenant.submitWork(task.id, "ipfs://QmResults");
 
 ## OnchainOS Integration
 
-**Current Integration:**
-- `onchainos wallet` - All transactions use Agentic Wallet
-- `onchainos security` - Pre-transaction validation (planned)
+**Implemented Skills:**
+- `onchainos wallet` -- Agentic Wallet creation and management for agent on-chain identity (`scripts/onchainos-integration.js`)
+- `onchainos dex` -- DEX aggregation skill for agent token swaps (COV -> OKB) via OnchainOS API
+- `onchainos wallet balance` -- Balance and transaction history queries for informed bidding decisions
+- `x402 payments` -- Pay-per-call payment protocol for agent service marketplace
 
 **Protocol-Level Integration:**
-- X Layer native deployment
-- Compatible with OnchainOS agent identity system
-- Can receive x402 payments for services
+- X Layer native deployment (6 contracts on testnet)
+- AgentRegistry maps OnchainOS wallet addresses to skill profiles
+- OnchainOS DEX skill wraps `/dex/aggregator/swap` for agent-initiated swaps
+- x402 payment envelopes for monetizing agent skills
+
+## Uniswap Skills Integration
+
+**Implemented Skills:**
+- `UniswapSkillRouter.sol` -- On-chain contract wrapping Uniswap V3 SwapRouter for agent swaps
+- `uniswap-integration.js` -- Off-chain skill wrapper for quotes, execution, and stats
+- Agent swap tracking (count + volume) feeds into reputation system
+- Price feeds via Uniswap V3 QuoterV2 for fair task bounty valuation
+- Multi-hop routing support (COV -> WOKB -> USDT)
 
 ## Proof of Work
 
@@ -232,36 +244,39 @@ cd frontend-v2 && npm run build
 - Arbitrage bots could delegate sub-tasks
 - Creates compounding value for X Layer
 
-## On-Chain Proof (Post-Deployment)
+## On-Chain Proof
 
-**To be completed after deployment:**
-- [ ] Factory contract: `0x...`
-- [ ] TaskMarket contract: `0x...`
-- [ ] ReputationStake contract: `0x...`
-- [ ] Agentic Wallet: `0x...`
-- [ ] 5+ test covenants created
-- [ ] 10+ task transactions
-- [ ] GitHub: https://github.com/TheMasterClaw/covenant
+**Deployed to X Layer Testnet (Chain ID: 1952):**
+- [x] AgentRegistry: `0x8e264821AFa98DD104eEcfcfa7FD9f8D8B320adA`
+- [x] CovenantFactory: `0x871ACbEabBaf8Bed65c22ba7132beCFaBf8c27B5`
+- [x] TaskMarket: `0x6A59CC73e334b018C9922793d96Df84B538E6fD5`
+- [x] StakeToken (COV): `0xC1e0A9DB9eA830c52603798481045688c8AE99C2`
+- [x] ReputationStake: `0x683d9CDD3239E0e01E8dC6315fA50AD92aB71D2d`
+- [x] DisputeDAO: `0x1c9fD50dF7a4f066884b58A05D91e4b55005876A`
+- [x] Deployer: `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (testnet deployer)
+- [x] GitHub: https://github.com/TheeMasterClaw/covenant-protocol
 
 ## Checklist
 
 | Requirement | Status |
 |-------------|--------|
 | Project name + one-line intro | ✅ |
-| Track selection | ✅ (Skill Arena) |
+| Track selection | ✅ (Skill Arena + X Layer Arena) |
 | Contact | ✅ |
-| Agentic Wallet address | ⏳ (need email) |
-| Public GitHub repo | ✅ |
-| OnchainOS integration | ✅ |
-| X post | ⏳ (after claim) |
+| Agentic Wallet address | ✅ `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` |
+| Public GitHub repo | ✅ https://github.com/TheeMasterClaw/covenant-protocol |
+| OnchainOS integration | ✅ (Agentic Wallet, DEX skill, Wallet skill, x402) |
+| Uniswap integration | ✅ (UniswapSkillRouter contract + off-chain wrapper) |
+| X Layer deployment | ✅ (6 contracts on testnet) |
+| X post | ⏳ |
 | Demo video | ⏳ (optional) |
 
 ## Next Steps
 
-1. **Deploy to X Layer** (requires funded deployer key)
-2. **Run protocol invariant tests** with Foundry
-3. **Set up Agentic Wallet** (need your email)
-4. **Submit to m/buildx** with this template
+1. ~~Deploy to X Layer~~ ✅ Deployed to testnet
+2. **Submit via Google Form** before 23:59 UTC April 15
+3. **Post on X** with #XLayerHackathon
+4. **Record demo video** (optional, 1-3 min)
 
 ---
 
