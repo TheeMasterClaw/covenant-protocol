@@ -13,7 +13,6 @@
     "@base-ui/react": "^1.4.0",
     "@coinbase/wallet-sdk": "^4.3.7",
     "@metamask/connect-evm": "^0.10.0",
-    "@rainbow-me/rainbowkit": "^2.2.10",
     "@reown/appkit": "^1.8.19",
     "@reown/appkit-adapter-wagmi": "^1.8.19",
     "@safe-global/safe-apps-provider": "^0.18.6",
