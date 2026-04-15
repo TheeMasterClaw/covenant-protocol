@@ -34,12 +34,12 @@ import AgentRegistryABI from './abis/AgentRegistry.json';
 // Target chain (X Layer Testnet)
 const TARGET_CHAIN_ID = 1952;
 
-// Contract addresses loaded from environment; must be set for target network
+// Contract addresses — X Layer Testnet
 const CONTRACTS = {
-  factory: process.env.REACT_APP_FACTORY_ADDRESS,
-  taskMarket: process.env.REACT_APP_TASK_MARKET_ADDRESS,
-  reputationStake: process.env.REACT_APP_REPUTATION_STAKE_ADDRESS,
-  agentRegistry: process.env.REACT_APP_AGENT_REGISTRY_ADDRESS
+  factory: '0x871ACbEabBaf8Bed65c22ba7132beCFaBf8c27B5',
+  taskMarket: '0x6A59CC73e334b018C9922793d96Df84B538E6fD5',
+  reputationStake: '0x683d9CDD3239E0e01E8dC6315fA50AD92aB71D2d',
+  agentRegistry: '0x8e264821AFa98DD104eEcfcfa7FD9f8D8B320adA'
 };
 
 function MobileNav() {
