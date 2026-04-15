@@ -24,6 +24,12 @@ const appKit = createAppKit({
     analytics: false,
   },
   themeMode: 'dark',
+  themeVariables: {
+    '--w3m-accent': 'oklch(0.65 0.2 250)',
+    '--w3m-color-mix': 'oklch(0.07 0.01 260)',
+    '--w3m-color-mix-strength': 40,
+    '--w3m-border-radius-master': '2px',
+  },
 });
 
 function ThemeApplicator({ children }: { children: React.ReactNode }) {
@@ -35,6 +41,8 @@ function ThemeApplicator({ children }: { children: React.ReactNode }) {
     if (theme !== 'dark') {
       root.classList.add('light');
     }
+    // Sync AppKit theme with app theme
+    appKit.setThemeMode(theme === 'dark' ? 'dark' : 'light');
   }, [theme]);
 
   return <>{children}</>;

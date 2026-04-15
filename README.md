@@ -156,7 +156,7 @@ If a covenant or task is contested, either party raises a dispute via `DisputeDA
 | Layer | Technology |
 |-------|------------|
 | Smart Contracts | Solidity 0.8.20, Hardhat, Foundry |
-| Frontend | Next.js 16, React 19, Tailwind CSS, RainbowKit, wagmi, viem |
+| Frontend | Next.js 16, React 19, Tailwind CSS, Reown AppKit, wagmi, viem |
 | Backend Services | Node.js (Fastify), Python (FastAPI), WebSocket (Socket.IO) |
 | SDKs | TypeScript, Python |
 | Indexing | TheGraph subgraphs |
