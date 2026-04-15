@@ -24,12 +24,17 @@ import { Footer } from './components/Footer';
 import { VowLoyaltyChecker } from './components/VowLoyaltyChecker';
 import { useTheme } from './hooks/useTheme';
 
-// Contract ABIs
-import CovenantFactoryABI from './abis/CovenantFactory.json';
-import AgentCovenantABI from './abis/AgentCovenant.json';
-import TaskMarketABI from './abis/TaskMarket.json';
-import ReputationStakeABI from './abis/ReputationStake.json';
-import AgentRegistryABI from './abis/AgentRegistry.json';
+// Contract ABIs (Hardhat artifacts — extract .abi array)
+import CovenantFactoryArtifact from './abis/CovenantFactory.json';
+import AgentCovenantArtifact from './abis/AgentCovenant.json';
+import TaskMarketArtifact from './abis/TaskMarket.json';
+import ReputationStakeArtifact from './abis/ReputationStake.json';
+import AgentRegistryArtifact from './abis/AgentRegistry.json';
+const CovenantFactoryABI = CovenantFactoryArtifact.abi;
+const AgentCovenantABI = AgentCovenantArtifact.abi;
+const TaskMarketABI = TaskMarketArtifact.abi;
+const ReputationStakeABI = ReputationStakeArtifact.abi;
+const AgentRegistryABI = AgentRegistryArtifact.abi;
 
 // Target chain (X Layer Testnet)
 const TARGET_CHAIN_ID = 1952;

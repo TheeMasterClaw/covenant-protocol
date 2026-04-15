@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ethers } from 'ethers';
-import AgentCovenantABI from '../abis/AgentCovenant.json';
+import AgentCovenantArtifact from '../abis/AgentCovenant.json';
+const AgentCovenantABI = AgentCovenantArtifact.abi;
 
 const STATUS_MAP = ['Pending', 'Active', 'Completed', 'Disputed', 'Breach', 'Cancelled'];
 
